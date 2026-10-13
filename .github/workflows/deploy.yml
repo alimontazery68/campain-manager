@@ -67,7 +67,9 @@ jobs:
           npm install --prefix apps/api --no-audit --no-fund
           npm install --prefix apps/web --no-audit --no-fund
           npm --prefix apps/api run prisma:generate
-          npm --prefix apps/api exec prisma migrate deploy
+          cd apps/api
+          npx prisma migrate deploy
+          cd ../..
           npm run build:api
           npm run build:web
           systemctl daemon-reload

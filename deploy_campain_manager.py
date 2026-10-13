@@ -101,7 +101,7 @@ def deploy(*, skip_build: bool = False, skip_migrate: bool = False) -> None:
             "npm --prefix apps/api run prisma:generate",
         ]
         if not skip_migrate:
-            steps.append("npm --prefix apps/api exec prisma migrate deploy")
+            steps.append("cd apps/api && npx prisma migrate deploy && cd ../..")
         if not skip_build:
             steps += ["npm run build:api", "npm run build:web"]
         steps += [
