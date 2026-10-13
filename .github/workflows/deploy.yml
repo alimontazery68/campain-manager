@@ -22,10 +22,14 @@ jobs:
           SERVER_HOST: ${{ secrets.DEPLOY_HOST }}
           SERVER_PORT: ${{ secrets.DEPLOY_PORT }}
         run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "${SERVER_PORT:-9011}" "$SERVER_HOST" >> ~/.ssh/known_hosts
+          test -n "$SSH_KEY" || { echo "DEPLOY_SSH_KEY is empty"; exit 1; }
+          test -n "$SERVER_HOST" || { echo "DEPLOY_HOST is empty"; exit 1; }
+          SSH_DIR="$HOME/.ssh"
+          mkdir -p "$SSH_DIR"
+          chmod 700 "$SSH_DIR"
+          printf '%s\n' "$SSH_KEY" > "$SSH_DIR/deploy_key"
+          chmod 600 "$SSH_DIR/deploy_key"
+          ssh-keyscan -T 10 -p "${SERVER_PORT:-9011}" "$SERVER_HOST" >> "$SSH_DIR/known_hosts"
 
       - name: Upload source
         env:
