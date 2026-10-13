@@ -1,0 +1,13 @@
+'use client';
+import { useEffect,useState,useRef } from 'react';
+import { request } from './api';
+type Learning={sourceHash:string;status:string;selected?:number[];report:{summary:string;limitations:string[];learnings:{category:string;observation:string;recommendation:string;confidence:string;evidence:{dayNumber:number|null;fact:string}[]}[]}};
+export default function CampaignLearning({id,confirmed}:{id:string;confirmed:()=>Promise<void>}){
+ const [data,setData]=useState<Learning|null>(null),[selected,setSelected]=useState<number[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const readVersion=useRef(0);
+ useEffect(()=>{let active=true;const version=readVersion.current;request<Learning|null>('campaigns/'+id+'/learning').then(d=>{if(active&&version===readVersion.current){setData(d);setSelected(d?.selected||[]);}}).catch(e=>{if(active&&version===readVersion.current)setError(e.message);});return()=>{active=false;};},[id]);
+ async function act(confirm=false){if(busy)return;readVersion.current++;setBusy(true);setError('');try{const d=await request<Learning>('campaigns/'+id+'/learning'+(confirm?'/confirm':''),{method:'POST',body:confirm?JSON.stringify({sourceHash:data?.sourceHash,selected}):undefined});setData(d);if(!confirm)setSelected(d.selected||[]);if(confirm)await confirmed();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
+ return <section className="day-card"><h2>از این کمپین چه یاد گرفتیم؟</h2><p>جمع‌بندی هوشمند فقط با این دکمه یک درخواست هزینه‌دار AI می‌فرستد. فقط نکته‌های منتخب و تأییدشده به حافظه کمپین‌های بعدی می‌روند.</p><button className="outline" disabled={busy} onClick={()=>void act()}>{busy?'در حال پردازش…':'ساخت جمع‌بندی هوشمند'}</button>{error&&<p role="alert" className="error">{error}</p>}
+ {data&&<><p>{data.report.summary}</p><ul>{data.report.limitations.map(s=><li key={s}>{s}</li>)}</ul>{data.report.learnings.map((l,i)=><article className="day-card" key={i}><label className="field"><span><input type="checkbox" disabled={busy||data.status==='CONFIRMED'} checked={selected.includes(i)} onChange={e=>setSelected(e.target.checked?[...selected,i]:selected.filter(n=>n!==i))}/>{l.observation}</span></label><small>اطمینان مدل: {{LOW:'کم',MEDIUM:'متوسط',HIGH:'زیاد'}[l.confidence as 'LOW'|'MEDIUM'|'HIGH']}؛ به معنی اثبات نیست.</small><ul>{l.evidence.map((e,j)=><li key={j}>{e.dayNumber===null?'اطلاعات کمپین':'روز '+e.dayNumber.toLocaleString('fa-IR')}: {e.fact}</li>)}</ul><p>پیشنهاد برای بعد: {l.recommendation}</p></article>)}{data.status==='CONFIRMED'?<p>نکته‌های منتخب ثبت شدند.</p>:<button className="primary" disabled={busy} onClick={()=>void act(true)}>تأیید فقط نکته‌های منتخب</button>}</>}
+ </section>;
+}

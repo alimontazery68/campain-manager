@@ -1,0 +1,13 @@
+'use client';
+type Plan = { strategy:string; bigIdea:string; coreMessage:string; assumptions:string[]; phases:{name:string;objective:string;startDay:number;endDay:number;audienceStateBefore?:string;audienceStateAfter?:string;keyMessage?:string;objectionsToAddress?:string[];proofToUse?:string[];successSignals?:string[]}[]; preparation:{title:string;why:string}[]; days:{dayNumber:number;mission:string;objective:string;decisionPoint:boolean;tasks:{title:string;why:string}[]}[] };
+export default function PlanReview({plan,status,busy,duration,action}:{plan?:Plan;status:string;busy:boolean;duration:number;action:(v:'plan'|'approve')=>void}) {
+  return <section className="day-card"><h2>طرح اختصاصی کمپین</h2>
+    {!plan?<><p>با توجه به محصول، مخاطب و مسیر خریدت یک طرح ساخته می‌شود. این دکمه یک درخواست هزینه‌دار به DeepSeek ارسال می‌کند؛ بازکردن صفحه درخواستی نمی‌فرستد.</p><button className="primary" disabled={busy||duration>14} onClick={()=>action('plan')}>{busy?'در حال ساخت طرح؛ ممکن است دو دقیقه طول بکشد…':'ساخت طرح کمپین'}</button>{duration>14&&<p>فعلاً طرح هوشمند برای کمپین‌های حداکثر ۱۴ روزه فعال است.</p>}</>:<>
+      <h3>مسیر پیشنهادی</h3><p>{plan.strategy}</p><h3>ایده اصلی</h3><p>{plan.bigIdea}</p><h3>پیام اصلی</h3><p>{plan.coreMessage}</p>
+      {plan.phases.map((p,i)=><details key={i}><summary>{p.name} · روز {p.startDay.toLocaleString('fa-IR')} تا {p.endDay.toLocaleString('fa-IR')}</summary><p>{p.objective}</p>{p.audienceStateBefore&&<p>وضعیت آغاز مخاطب: {p.audienceStateBefore}</p>}{p.audienceStateAfter&&<p>تغییر مورد انتظار: {p.audienceStateAfter}</p>}{p.keyMessage&&<p>پیام مرحله: {p.keyMessage}</p>}{p.objectionsToAddress?.map((v,j)=><p key={'o'+j}>تردید قابل پاسخ: {v}</p>)}{p.proofToUse?.map((v,j)=><p key={'p'+j}>شواهد قابل استفاده: {v}</p>)}{p.successSignals?.map((v,j)=><p key={'s'+j}>نشانه پیشرفت: {v}</p>)}</details>)}
+      {plan.assumptions.length>0&&<><h3>مواردی که هنوز قطعی نیستند</h3>{plan.assumptions.map((a,i)=><p key={i}>{a}</p>)}</>}
+      <h3>قبل از شروع آماده کن</h3>{plan.preparation.map((p,i)=><p key={i}><strong>{p.title}</strong> — {p.why}</p>)}
+      {status==='DRAFT'&&<><h3>برنامه پیشنهادی برای بررسی</h3>{plan.days.map(d=><details key={d.dayNumber}><summary>روز {d.dayNumber.toLocaleString('fa-IR')}: {d.mission}{d.decisionPoint?' · ایستگاه بررسی':''}</summary><p>{d.objective}</p>{d.tasks.map((t,i)=><p key={i}>{t.title} — {t.why}</p>)}</details>)}<p>فقط با تأیید تو، برنامه اجرا ساخته می‌شود. کارهای ثبت‌شده از نسخه قبلی در سوابق محفوظ می‌مانند.</p><button className="primary" disabled={busy} onClick={()=>action('approve')}>{busy?'در حال ذخیره…':'تأیید و ساخت برنامه اجرا'}</button></>}
+    </>}
+  </section>;
+}

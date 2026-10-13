@@ -1,0 +1,2 @@
+const parser=require('@typescript-eslint/parser');
+module.exports=[{ignores:['**/node_modules/**','**/.next/**','**/dist/**','**/next-env.d.ts']},{files:['apps/**/*.ts','apps/**/*.tsx'],languageOptions:{parser,parserOptions:{ecmaVersion:'latest',sourceType:'module',ecmaFeatures:{jsx:true}}},rules:{'no-debugger':'error','no-unreachable':'error','no-constant-condition':'error','no-dupe-else-if':'error','no-unsafe-finally':'error'}}];

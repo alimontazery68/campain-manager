@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  PAUSED
+}
+
+enum TaskType {
+  CONTENT
+  OPERATIONAL
+  SALES
+  SUPPORT
+  PREPARATION
+  FOLLOW_UP
+  MEASUREMENT
+}
+
+model Campaign {
+  id String @id @default(cuid())
+  name String
+  businessType String
+  campaignType String
+  product String
+  audience String?
+  problem String?
+  outcome String?
+  offer Json?
+  salesPath Json?
+  duration Int
+  startDate DateTime?
+  creationKey String? @unique
+  creationPayloadHash String?
+  target Int?
+  maxContentPerDay Int @default(1)
+  aiPlan Json?
+  planningContext Json?
+  analysis Json?
+  completion Json?
+  preparationInitialized Boolean @default(false)
+  preparationTasks PreparationTask[]
+  learning Json?
+  changes CampaignChange[]
+  status CampaignStatus @default(DRAFT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  days CampaignDay[]
+}
+model CampaignDay {
+  id String @id @default(cuid())
+  campaignId String
+  dayNumber Int
+  date DateTime
+  phase String
+  mission String
+  objective String
+  status String @default("PENDING")
+  guidance Json?
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  tasks Task[]
+  result DailyResult?
+  @@unique([campaignId, dayNumber])
+}
+model Task {
+  id String @id @default(cuid())
+  dayId String
+  title String
+  type TaskType
+  format String?
+  cta String?
+  why String?
+  objective String?
+  requiredAsset String?
+  status String @default("PENDING")
+  content String?
+  archived Boolean @default(false)
+  locked Boolean @default(false)
+  position Int @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+  preparationIds String[] @default([])
+  metadata Json?
+  day CampaignDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+}
+
+model DailyResult {
+  id String @id @default(cuid())
+  dayId String @unique
+  rating String
+  views Int?
+  leads Int?
+  sales Int?
+  warmLeads Int?
+  notes String?
+  revenue Decimal? @db.Decimal(15, 0)
+  feedback String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  day CampaignDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+}
+
+model PreparationTask {
+  id String @id @default(cuid())
+  campaignId String
+  position Int
+  title String
+  why String
+  requiredBeforeDay Int?
+  completed Boolean @default(false)
+  updatedAt DateTime @updatedAt
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  @@unique([campaignId, position])
+}
+
+model CampaignChange {
+  id String @id @default(cuid())
+  campaignId String
+  source String
+  reason String
+  data Json
+  createdAt DateTime @default(now())
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  @@index([campaignId, createdAt])
+}

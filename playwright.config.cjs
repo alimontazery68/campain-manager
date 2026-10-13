@@ -1,0 +1,2 @@
+const {defineConfig}=require('@playwright/test');
+module.exports=defineConfig({testDir:'./tests',workers:1,retries:0,timeout:120000,expect:{timeout:15000},use:{baseURL:process.env.TEST_WEB_URL||'http://localhost:3000',headless:true,channel:'chrome',trace:'retain-on-failure'},projects:[{name:'desktop',use:{viewport:{width:1280,height:900}}},{name:'mobile',use:{viewport:{width:390,height:844}}}],reporter:'list'});

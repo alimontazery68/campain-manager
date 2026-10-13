@@ -1,0 +1,23 @@
+{
+  "name": "campaign-manager",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:api": "npm --prefix apps/api run start:dev",
+    "build": "npm run build:web && npm run build:api",
+    "build:web": "npm --prefix apps/web run build",
+    "build:api": "npm --prefix apps/api run build",
+    "lint": "eslint apps/api/src apps/web/app",
+    "typecheck": "node apps/web/node_modules/typescript/bin/tsc --noEmit --project apps/web/tsconfig.json && node apps/api/node_modules/typescript/bin/tsc --noEmit --project apps/api/tsconfig.json",
+    "test": "node --test scripts/planning-contract.test.cjs scripts/content-revisions.test.cjs scripts/api-response.test.cjs",
+    "test:e2e": "playwright test",
+    "test:integration": "node scripts/verify-all.cjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@typescript-eslint/parser": "^8.71.1",
+    "concurrently": "^9.1.2",
+    "eslint": "^10.12.0"
+  }
+}
