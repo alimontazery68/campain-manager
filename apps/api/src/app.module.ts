@@ -1,4 +1,5 @@
 import { Module, Controller, Get } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { PrismaService } from './prisma.service';
 import { CampaignsController } from './campaigns.controller';
 import { CampaignsService } from './campaigns.service';
@@ -13,5 +14,9 @@ import { PreparationService } from './preparation.service';
 import { TaskControlsService } from './task-controls.service';
 import { LearningService } from './ai/learning.service';
 import { ContextService } from './ai/context.service';
-@Controller('health') class HealthController { @Get() check(){ return { status:'ok', service:'campaign-manager-api' }; } }
-@Module({controllers:[HealthController,CampaignsController],providers:[PrismaService,CampaignsService,PlanningService,ContentService,ResultsService,AnalysisService,CompletionService,PreparationService,TaskControlsService,LearningService,ContextService,{provide:AI_PROVIDER,useClass:DeepSeekProvider}]}) export class AppModule {}
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { AuthGuard } from './auth.guard';
+import { Public } from './auth.decorator';
+@Controller('health') class HealthController { @Public() @Get() check(){ return { status:'ok', service:'campaign-manager-api' }; } }
+@Module({controllers:[HealthController,CampaignsController,AuthController],providers:[PrismaService,CampaignsService,PlanningService,ContentService,ResultsService,AnalysisService,CompletionService,PreparationService,TaskControlsService,LearningService,ContextService,AuthService,{provide:AI_PROVIDER,useClass:DeepSeekProvider},{provide:APP_GUARD,useClass:AuthGuard}]}) export class AppModule {}

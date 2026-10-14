@@ -32,7 +32,14 @@ const fa = (n: number) => n.toLocaleString('fa-IR');
 function Field({label, value, change, multiline = false}: {label: string; value: string; change: (v:string)=>void; multiline?: boolean}) {
   return <label className="field">{label}{multiline ? <textarea value={value} onChange={e=>change(e.target.value)} rows={3}/> : <input value={value} onChange={e=>change(e.target.value)}/>}</label>;
 }
+function AuthScreen({onSuccess}:{onSuccess:()=>void}) {
+  const [phone,setPhone]=useState(''); const [code,setCode]=useState(''); const [sent,setSent]=useState(false); const [error,setError]=useState(''); const [busy,setBusy]=useState(false);
+  async function submit(){setBusy(true);setError('');try{const path=sent?'auth/verify-otp':'auth/request-otp';const body=sent?{phone,code}:{phone};const response=await fetch('/api/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw new Error(data.message||'خطا در احراز هویت');if(sent)onSuccess();else setSent(true);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
+  return <main className="shell"><section className="content" style={{maxWidth:520,margin:'12vh auto'}}><h1>ورود به کمپین‌منیجر</h1><p>برای ورود، شماره موبایل خود را وارد کنید.</p><label className="field">شماره موبایل<input dir="ltr" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="09121234567"/></label>{sent&&<label className="field">کد تایید<input dir="ltr" inputMode="numeric" value={code} onChange={e=>setCode(e.target.value)} maxLength={6}/></label>}<button className="primary" disabled={busy||!phone||(sent&&!code)} onClick={()=>void submit()}>{busy?'در حال بررسی…':sent?'ورود':'دریافت کد تایید'}</button>{error&&<p className="error">{error}</p>}</section></main>;
+}
+
 export default function Home() {
+  const [authenticated, setAuthenticated] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selected, setSelected] = useState('');
   const [view, setView] = useState('dashboard');
@@ -52,7 +59,7 @@ export default function Home() {
     try { setCampaigns(await request<Campaign[]>('campaigns')); } catch(e) { setError((e as Error).message); }
     finally { setLoading(false); }
   }
-  useEffect(()=>{ void load(); try {const saved = localStorage.getItem(draftKey); if(saved){const restored=JSON.parse(saved);setDraft({...empty,...restored,details:{...emptyDetails,...restored.details}});}} catch { /* Invalid local draft: use defaults. */ } setHydrated(true); }, []);
+  useEffect(()=>{ if(!authenticated) return; void load(); try {const saved = localStorage.getItem(draftKey); if(saved){const restored=JSON.parse(saved);setDraft({...empty,...restored,details:{...emptyDetails,...restored.details}});}} catch { /* Invalid local draft: use defaults. */ } setHydrated(true); }, [authenticated]);
   useEffect(()=>{if(hydrated) localStorage.setItem(draftKey, JSON.stringify(draft));}, [draft, hydrated]);
   useEffect(()=>{if(!wizard) return; const handler=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!saving)setWizard(false);}; document.addEventListener('keydown',handler); return ()=>document.removeEventListener('keydown',handler);}, [wizard,saving]);
   const campaign = campaigns.find(c=>c.id===selected) || campaigns[0];
