@@ -21,3 +21,25 @@ pg_restore -h localhost -U postgres -d campaign_manager_restore_check -W campaig
 ```
 
 این نمونه باید در دیتابیس آزمایشی جدید اجرا شود، نه روی دیتابیس اصلی. اگر نام آزمایشی موجود است نام جدید انتخاب کنید. صحت بازیابی را با بررسی تعداد رکورد و اجرای برنامه روی دیتابیس آزمایشی بسنجید. پشتیبان رمزگذاری‌شده و نسخه خارج از سرور نگهداری شود؛ سیاست نگهداری و آزمایش بازیابی دوره‌ای هنوز باید برای سرور واقعی تعیین شود.
+
+## به‌روزرسانی احراز هویت و اجرای نسخه فعلی
+
+توضیح «بدون ورود کاربر» در ابتدای سند مربوط به نسخه اولیه است؛ نسخه فعلی ورود OTP، نشست HttpOnly و مالکیت کمپین دارد. هیچ ادعایی درباره تست سرور واقعی از این سند نتیجه نمی‌شود.
+
+پس از تنظیم امن متغیرهای apps/api/.env و پشتیبان‌گیری:
+
+```powershell
+npm ci
+npm --prefix apps/api ci
+npm --prefix apps/web ci
+npm --prefix apps/api run prisma:generate
+npm --prefix apps/api exec -- prisma migrate deploy
+npm run build
+npm --prefix apps/api start
+# در فرایند جداگانه:
+npm --prefix apps/web start
+```
+
+برای بررسی قبل از انتشار، API محلی را اجرا کنید و سپس `npm test`، `npm run lint`، `npm run typecheck` و `npm run test:integration` را اجرا کنید. تست مرورگر به اجرای web هم نیاز دارد: `npm run test:e2e`.
+
+برای واگذاری داده‌های قدیمی بدون مالک، `LEGACY_CAMPAIGN_OWNER_PHONE` را آگاهانه برابر شماره مالک واقعی با قالب 09xxxxxxxxx قرار دهید؛ انتقال در ورود موفق همان شماره انجام می‌شود. خالی ماندن تنظیم، داده‌ها را حذف نمی‌کند و به کاربران تازه واگذار نمی‌کند. AUTH_SESSION_SECRET در production باید مقدار تصادفی امن داشته باشد؛ SMS_ENABLED=0 فقط برای محیط آزمایشی است.

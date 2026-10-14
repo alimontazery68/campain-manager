@@ -1,0 +1,36 @@
+﻿const {test,expect}=require('@playwright/test');
+test('wizard recovers input and retries with the same creation key',async({page})=>{
+ const attempts=[];
+ await page.route('**/api/auth/session',r=>r.fulfill({json:{user:{id:'test'}}}));
+ await page.route('**/api/campaigns',r=>{
+  if(r.request().method()==='GET')return r.fulfill({json:[]});
+  attempts.push({body:r.request().postDataJSON(),key:r.request().headers()['idempotency-key']});
+  return r.fulfill({status:503,json:{message:'خطای آزمایشی'}});
+ });
+ await page.goto('/');await page.locator('.empty-state .primary').click();
+ let w=page.getByRole('dialog');
+ await w.getByLabel('نام کمپین',{exact:true}).fill('کمپین بازیابی');
+ await w.getByLabel('چه محصول یا خدمتی').fill('محصول واقعی');
+ await w.getByLabel('هدف اصلی').selectOption('افزایش فروش');
+ await page.reload();await page.locator('.empty-state .primary').click();w=page.getByRole('dialog');
+ await expect(w.getByLabel('نام کمپین',{exact:true})).toHaveValue('کمپین بازیابی');
+ await w.getByRole('button',{name:'ادامه',exact:true}).click();
+ await w.getByLabel('پلتفرم اصلی').selectOption('تلگرام');
+ await w.getByLabel('مخاطب برای اقدام').selectOption('مراجعه به لینک خرید');
+ await expect(w.getByRole('button',{name:'ادامه',exact:true})).toBeDisabled();
+ await w.getByLabel('نشانی یا شماره').fill('https://example.com/buy');
+ await w.getByLabel('روزانه چند محتوا').selectOption('3');
+ await w.getByRole('button',{name:'بازگشت',exact:true}).click();
+ await expect(w.getByLabel('نام کمپین',{exact:true})).toHaveValue('کمپین بازیابی');
+ await w.getByRole('button',{name:'ادامه',exact:true}).click();
+ await w.getByRole('button',{name:'ادامه',exact:true}).click();
+ await w.getByRole('button',{name:'ساخت کمپین',exact:true}).click();
+ await expect(w.getByRole('alert')).toContainText('خطای آزمایشی');
+ await w.getByRole('button',{name:'ساخت کمپین',exact:true}).click();
+ await expect.poll(()=>attempts.length).toBe(2);
+ expect(attempts[0].key).toBeTruthy();expect(attempts[0].key).toBe(attempts[1].key);
+ expect(attempts[1].body.maxContentPerDay).toBe(3);
+ expect(attempts[1].body.conversionPath.details).toContain('https://example.com/buy');
+ expect(attempts[1].body.audience).toBeUndefined();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

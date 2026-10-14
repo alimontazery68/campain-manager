@@ -1,8 +1,8 @@
-const {planningPrompt}=require('../apps/api/dist/ai/planning');
-const {contentPrompt,revisionInstructions}=require('../apps/api/dist/ai/content');
-const {analysisPrompt}=require('../apps/api/dist/ai/analysis.service');
-const {contextPrompt}=require('../apps/api/dist/ai/context.service');
-const {learningPrompt}=require('../apps/api/dist/ai/learning.service');
+const {planningPrompt}=require('../apps/api/dist/src/ai/planning');
+const {contentPrompt,revisionInstructions}=require('../apps/api/dist/src/ai/content');
+const {analysisPrompt}=require('../apps/api/dist/src/ai/analysis.service');
+const {contextPrompt}=require('../apps/api/dist/src/ai/context.service');
+const {learningPrompt}=require('../apps/api/dist/src/ai/learning.service');
 console.log('# پرامپت‌های سیستمی DeepSeek\n');
 console.log('این متن‌ها دقیقاً پیام system هستند. پیام user یک JSON از اطلاعات کمپین و وظیفه است؛ کلید API داخل هیچ‌کدام نیست. پرامپت‌ها در بک‌اند قرار دارند و برای تمام کاربران همان نسخه کد مشترک‌اند.\n');
 console.log('## ۱. ساخت طرح کمپین\n\nمنبع: apps/api/src/ai/planning.ts\n\n```text\n'+planningPrompt+'```\n');

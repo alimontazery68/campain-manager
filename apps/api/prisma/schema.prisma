@@ -30,6 +30,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   otpCodes  OtpCode[]
+  campaigns Campaign[]
 }
 
 model OtpCode {
@@ -46,6 +47,7 @@ model OtpCode {
 
 model Campaign {
   id String @id @default(cuid())
+  ownerId String?
   name String
   businessType String
   campaignType String
@@ -73,6 +75,8 @@ model Campaign {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   days CampaignDay[]
+  owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  @@index([ownerId, updatedAt])
 }
 model CampaignDay {
   id String @id @default(cuid())

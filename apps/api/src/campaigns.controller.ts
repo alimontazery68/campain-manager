@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch, Post, Req } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { PlanningService } from './ai/planning.service';
 import { ContentService } from './ai/content.service';
@@ -27,9 +27,9 @@ import { ContextService } from './ai/context.service';
   @Get(':id/analysis') analysisGet(@Param('id') id:string){return this.analysis.get(id);}
   @Post(':id/analysis') analysisGenerate(@Param('id') id:string){return this.analysis.generate(id);}
   @Post(':id/analysis/decision') analysisDecide(@Param('id') id:string,@Body() body:unknown){return this.analysis.decide(id,body);}
-  @Get() list(){return this.service.list();}
-  @Get(':id') get(@Param('id') id:string){return this.service.get(id);}
-  @Post() create(@Body() body:unknown,@Headers('idempotency-key') key?:string){return this.service.create(body,key);}
+  @Get() list(@Req() req:any){return this.service.list(req.userId);}
+  @Get(':id') get(@Param('id') id:string,@Req() req:any){return this.service.get(id,req.userId);}
+  @Post() create(@Body() body:unknown,@Headers('idempotency-key') key?:string,@Req() req?:any){return this.service.create(body,key,req?.userId);}
   @Get(':id/deletion') deletion(@Param('id') id:string){return this.service.deletionPreview(id);}
   @Post(':id/delete') remove(@Param('id') id:string,@Body() body:unknown){return this.service.remove(id,body);}
   @Post(':id/replan') replan(@Param('id') id:string,@Body() body:unknown){return this.service.replan(id,body);}

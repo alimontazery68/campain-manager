@@ -1,8 +1,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {fixture}=require('./planning-fixtures.cjs');
-const {validatePlan,validateStoredPlan,planningPrompt}=require('../apps/api/dist/ai/planning');
-const {buildPlanningInput,PlanningContextSchema}=require('../apps/api/dist/ai/planning-context');
+const {validatePlan,validateStoredPlan,planningPrompt}=require('../apps/api/dist/src/ai/planning');
+const {buildPlanningInput,PlanningContextSchema}=require('../apps/api/dist/src/ai/planning-context');
 const source={businessType:'آموزش',campaignType:'فروش',product:'دوره',audience:null,problem:null,outcome:null,offer:null,salesPath:{action:'پیام به پشتیبانی',details:'پرداخت'},duration:2,target:null,maxContentPerDay:1};
 test('A/B/C: contract preserves distinct example strategies, audience-state progression and booking CTA',()=>{
   const education=validatePlan(fixture(),2,1),physical=validatePlan(fixture('physical'),2,1),consulting=validatePlan(fixture('consulting'),2,1);

@@ -1,12 +1,12 @@
 const assert=require('node:assert/strict'),path=require('node:path');
 process.loadEnvFile(path.resolve(__dirname,'../apps/api/.env'));
 const {PrismaClient}=require('../apps/api/node_modules/@prisma/client');
-const {TaskControlsService}=require('../apps/api/dist/task-controls.service');
-const {PlanningService}=require('../apps/api/dist/ai/planning.service');
-const {LearningService}=require('../apps/api/dist/ai/learning.service');
-const {ContentService}=require('../apps/api/dist/ai/content.service');
-const {CompletionService}=require('../apps/api/dist/completion.service');
-const {ContextService}=require('../apps/api/dist/ai/context.service');
+const {TaskControlsService}=require('../apps/api/dist/src/task-controls.service');
+const {PlanningService}=require('../apps/api/dist/src/ai/planning.service');
+const {LearningService}=require('../apps/api/dist/src/ai/learning.service');
+const {ContentService}=require('../apps/api/dist/src/ai/content.service');
+const {CompletionService}=require('../apps/api/dist/src/completion.service');
+const {ContextService}=require('../apps/api/dist/src/ai/context.service');
 const {fixture}=require('./planning-fixtures.cjs');
 const db=new PrismaClient(),ids=[];
 async function main(){

@@ -1,15 +1,19 @@
 const assert=require('node:assert/strict');
+const {createHmac,randomUUID}=require('node:crypto');
 const path=require('node:path');
 process.loadEnvFile(path.resolve(__dirname,'../apps/api/.env'));
 const {PrismaClient}=require('../apps/api/node_modules/@prisma/client');
-const {CompletionService,completionSummary}=require('../apps/api/dist/completion.service');
-const {CampaignsService}=require('../apps/api/dist/campaigns.service');
-const {ResultsService}=require('../apps/api/dist/results.service');
-const {ContentService}=require('../apps/api/dist/ai/content.service');
-const {buildPlanningInput}=require('../apps/api/dist/ai/planning-context');
-const db=new PrismaClient();const ids=[];
+const {CompletionService,completionSummary}=require('../apps/api/dist/src/completion.service');
+const {CampaignsService}=require('../apps/api/dist/src/campaigns.service');
+const {ResultsService}=require('../apps/api/dist/src/results.service');
+const {ContentService}=require('../apps/api/dist/src/ai/content.service');
+const {buildPlanningInput}=require('../apps/api/dist/src/ai/planning-context');
+const db=new PrismaClient();const ids=[];let testUser;
+function session(userId){const payload=Buffer.from(JSON.stringify({sub:userId,exp:Date.now()+3600000})).toString('base64url');return `${payload}.${createHmac('sha256',process.env.AUTH_SESSION_SECRET||'change-me').update(payload).digest('base64url')}`;}
 async function main(){
+ testUser=await db.user.create({data:{phone:'09'+randomUUID().replace(/\D/g,'').slice(0,9)}});
  const c=await db.campaign.create({data:{name:'Completion test',businessType:'آموزش',campaignType:'فروش',product:'دوره',duration:2,status:'ACTIVE',days:{create:[{dayNumber:1,date:new Date(Date.now()-86400000),phase:'اجرا',mission:'اجرا',objective:'هدف',result:{create:{rating:'GOOD',views:0,sales:null,revenue:999999999999999,feedback:'تمرین کوتاه مهم بود'}},tasks:{create:{title:'متن',type:'CONTENT',content:'متن محفوظ'}}},{dayNumber:2,date:new Date(Date.now()+3*86400000),phase:'اجرا',mission:'اجرا',objective:'هدف',tasks:{create:{title:'بعدی',type:'CONTENT'}}}]}},include:{days:{include:{tasks:true,result:true},orderBy:{dayNumber:'asc'}}}});ids.push(c.id);
+ await db.campaign.update({where:{id:c.id},data:{ownerId:testUser.id}});
  const service=new CompletionService(db),p=await service.get(c.id);
  assert.equal(p.summary.metrics.views.total,'0');assert.equal(p.summary.metrics.sales.total,null);assert.equal(p.summary.metrics.revenue.total,'999999999999999');assert.equal(p.summary.reportedDays,1);assert.deepEqual(p.summary.missingResultDays,[2]);
  const input={sourceHash:p.sourceHash,confirm:true,allowEarly:true,learnings:['زمان تمرین را شفاف توضیح بده']};
@@ -34,8 +38,9 @@ async function main(){
  assert.deepEqual(buildPlanningInput(next).previousLearnings,input.learnings);
  assert.equal(completionSummary({...c,days:[]}).metrics.views.total,null);
  const base=process.env.TEST_BASE_URL||'http://127.0.0.1:'+(process.env.API_PORT||4000);
- assert.equal((await fetch(base+'/campaigns/'+c.id+'/completion')).status,200);
- const response=await fetch(base+'/campaigns/'+c.id+'/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});assert.equal(response.status,201);
+ const headers={cookie:`campaign_session=${session(testUser.id)}`};
+ assert.equal((await fetch(base+'/campaigns/'+c.id+'/completion',{headers})).status,200);
+ const response=await fetch(base+'/campaigns/'+c.id+'/complete',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify(input)});assert.equal(response.status,201);
  console.log('PASS: exact totals, null/zero distinction, explicit early confirmation, stale protection, idempotence, completed guards, preserved content, optional learning transfer and HTTP endpoints. No AI calls.');
 }
-main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{for(const id of ids)await db.campaign.delete({where:{id}});await db.$disconnect();});
+main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{for(const id of ids)await db.campaign.delete({where:{id}});if(testUser)await db.user.delete({where:{id:testUser.id}});await db.$disconnect();});

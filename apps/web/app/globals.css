@@ -8,3 +8,28 @@ nav button{background:transparent;text-align:right;padding:14px;border-radius:12
 .settings-panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;line-height:2}
 .settings-panel details{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}
 @media(max-width:800px){.mobile-nav{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}.mobile-nav button{flex:0 0 auto;white-space:nowrap}.mobile-nav button.active{background:#eef0ff;color:var(--blue)}}
+
+/* AutoChannel visual system: calm surfaces, clear hierarchy, RTL-friendly touch targets. */
+:root{--bg:#f6f8fc;--ink:#17233b;--muted:#69758c;--line:#e4e8f1;--blue:#5969e9;--purple:#885ee7;--success:#20a780;--radius:14px}
+body{background:var(--bg);color:var(--ink)}
+aside{box-shadow:0 1px 0 rgba(23,35,59,.03)}
+.content{max-width:1280px;padding-top:42px}
+.campaign-card,.task,.side-card,.muted-card,.empty-state,.settings-panel{box-shadow:0 8px 26px rgba(23,35,59,.045);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.campaign-card:hover,.side-card:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(23,35,59,.09);border-color:#cbd3f7}
+.campaign-card:focus-visible{outline:3px solid #9da9ff;outline-offset:3px}
+.empty-state{border:1px solid var(--line);padding:64px 24px}
+.empty-state svg{color:var(--blue);margin:auto;width:34px;height:34px}
+.hero{background:linear-gradient(120deg,#171b2b 0%,#303b83 52%,#5969e9 100%);box-shadow:0 16px 35px rgba(46,58,130,.2)}
+.primary{background:var(--blue)}
+.primary:hover{filter:brightness(.96);box-shadow:0 9px 20px rgba(89,105,233,.28)}
+.wizard-progress{height:6px;background:#edf0f7;border-radius:99px;overflow:hidden;margin:8px 0 18px}.wizard-progress span{display:block;height:100%;background:var(--blue);border-radius:inherit;transition:width .2s ease}.simple-wizard{width:min(620px,100%)}
+.logout-button{position:fixed;left:24px;bottom:22px;z-index:5;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 13px;color:#69758c;font-size:12px;box-shadow:0 5px 18px rgba(23,35,59,.08)}.logout-button:hover{color:#a62c25;border-color:#f0c7c3}@media(max-width:800px){.logout-button{left:16px;bottom:16px}}
+.workspace-tabs{position:fixed;top:16px;right:calc(245px + 28px);z-index:6;display:flex;gap:4px;padding:4px;background:#ffffffeb;border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 22px rgba(23,35,59,.08);backdrop-filter:blur(8px)}.workspace-tabs button{background:transparent;color:var(--muted);padding:7px 12px;border-radius:8px;font-size:12px}.workspace-tabs button.active{background:#eef0ff;color:var(--blue);font-weight:700}@media(max-width:800px){.workspace-tabs{top:10px;right:10px;left:10px;justify-content:space-between}.workspace-tabs button{flex:1;padding-inline:6px}}
+.secondary:hover,.outline:hover{background:#f2f4ff;border-color:#cbd3f7}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(89,105,233,.12);outline:0}
+@media(max-width:800px){.content{padding:24px 16px}.empty-state{padding:44px 18px}.hero{border-radius:16px}.campaign-card{padding:18px}}
+.dashboard-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:18px 0}.stat-card{background:var(--card,#fff);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:8px}.stat-card span{color:var(--muted);font-size:13px}.stat-card strong{font-size:22px;color:var(--ink)}
+@media(max-width:800px){.dashboard-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stat-card:last-child{grid-column:span 2}}
+
+.sales-trend-row{display:flex;align-items:center;gap:12px;margin-block:12px}.sales-trend-row meter{flex:1;min-width:0;height:20px}.sales-trend-row span{min-width:60px}
+.workspace-tabs{position:static;inset:auto;margin:16px 0;width:fit-content;box-shadow:none;backdrop-filter:none;flex-wrap:wrap}.modal-backdrop{z-index:50}.sales-trend-row{overflow-wrap:anywhere}@media(max-width:800px){.workspace-tabs{width:100%}.mobile-nav{flex-wrap:wrap}.stat-card strong{overflow-wrap:anywhere}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

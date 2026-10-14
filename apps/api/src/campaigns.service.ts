@@ -9,7 +9,7 @@ const include = {preparationTasks:{orderBy:{position:'asc' as const}},days: { in
 @Injectable()
 export class CampaignsService {
   constructor(private db: PrismaService) {}
-  list() { return this.db.campaign.findMany({ include, orderBy: { updatedAt: 'desc' } }); }
+  list(userId?:string) { return this.db.campaign.findMany({ where:userId?{ownerId:userId}:undefined, include, orderBy: { updatedAt: 'desc' } }); }
   private async deletionSnapshot(client:any,id:string){
     const c=await client.campaign.findUnique({where:{id},include:{days:{orderBy:{id:'asc'},include:{tasks:{orderBy:{id:'asc'}},result:true}},preparationTasks:{orderBy:{id:'asc'}},changes:{orderBy:{id:'asc'}}}});
     if(!c)throw new NotFoundException('کمپین پیدا نشد.');
@@ -43,10 +43,10 @@ export class CampaignsService {
       await tx.$queryRaw`SELECT id FROM "Campaign" WHERE id = ${id} FOR UPDATE`;
       const c=await tx.campaign.findUnique({where:{id}});if(!c)throw new NotFoundException('کمپین پیدا نشد.');
       const previous=await tx.campaign.findUnique({where:{creationKey:p.data.key},include});
-      if(previous){if(previous.creationPayloadHash!==hash)throw new ConflictException('نسخه تازه قبلاً با اطلاعات متفاوت ثبت شده؛ فهرست را بررسی کن.');return previous;}
+      if(previous){if(previous.ownerId!==c.ownerId||previous.creationPayloadHash!==hash)throw new ConflictException('نسخه تازه قبلاً با اطلاعات متفاوت ثبت شده؛ فهرست را بررسی کن.');return previous;}
       if(c.updatedAt.toISOString()!==p.data.expectedUpdatedAt)throw new ConflictException('اطلاعات کمپین تغییر کرده؛ دوباره بخوان.');
       const {objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=p.data.fields;
-      const after=await tx.campaign.create({data:{...base,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):null,creationKey:p.data.key,creationPayloadHash:hash,planningContext:JSON.parse(JSON.stringify({objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}))},include});
+      const after=await tx.campaign.create({data:{...base,ownerId:c.ownerId,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):null,creationKey:p.data.key,creationPayloadHash:hash,planningContext:JSON.parse(JSON.stringify({objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}))},include});
       await tx.campaignChange.create({data:{campaignId:after.id,source:'COPIED_SETUP',reason:'نسخه تازه برای ویرایش؛ اجرای قبلی منتقل نشده است',data:{sourceCampaignId:id}}});return after;
     });
   }
@@ -58,26 +58,26 @@ export class CampaignsService {
       if(c.status!=='DRAFT'||c.updatedAt.toISOString()!==p.data.expectedUpdatedAt)throw new ConflictException('اطلاعات تغییر کرده یا طرح تأیید شده است؛ دوباره بخوان.');
       const {objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=p.data.fields;
       const planningContext=JSON.parse(JSON.stringify({objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}));
-      const after=await tx.campaign.update({where:{id},data:{...base,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):null,planningContext,aiPlan:Prisma.DbNull},include});
+      const after=await tx.campaign.update({where:{id},data:{...base,ownerId:c.ownerId,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):null,planningContext,aiPlan:Prisma.DbNull},include});
       await tx.campaignChange.create({data:{campaignId:id,source:'MANUAL_SETUP',reason:'تغییر اطلاعات واقعی؛ طرح قبلی نیاز به ساخت مجدد دارد',data:JSON.parse(JSON.stringify({before:c,after}))}});return after;
     });
   }
-  async create(input: unknown,creationKey?:string) {
+  async create(input: unknown,creationKey?:string,userId?:string) {
     const parsed = CreateCampaignSchema.safeParse(input);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     if(creationKey&&!/^[a-zA-Z0-9-]{16,100}$/.test(creationKey))throw new BadRequestException('شناسه ثبت معتبر نیست.');
     const creationPayloadHash=createHash('sha256').update(JSON.stringify(parsed.data)).digest('hex');
     const existing=creationKey?await this.db.campaign.findUnique({where:{creationKey},include}):null;
-    if(existing){if(existing.creationPayloadHash!==creationPayloadHash)throw new ConflictException('این ثبت قبلاً انجام شده و اطلاعات جدید متفاوت است؛ فهرست کمپین‌ها را بررسی کن.');return existing;}
+    if(existing){if((userId&&existing.ownerId!==userId)||existing.creationPayloadHash!==creationPayloadHash)throw new ConflictException('این ثبت قبلاً انجام شده و اطلاعات جدید متفاوت است؛ فهرست کمپین‌ها را بررسی کن.');return existing;}
     const {objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=parsed.data;
     const planningContext = JSON.parse(JSON.stringify({objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}));
-    try{return await this.db.campaign.create({include,data:{...base,creationKey,creationPayloadHash:creationKey?creationPayloadHash:undefined,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):undefined,planningContext}});}catch(e){
-      if(creationKey&&e instanceof Prisma.PrismaClientKnownRequestError&&e.code==='P2002'){const row=await this.db.campaign.findUnique({where:{creationKey},include});if(row?.creationPayloadHash===creationPayloadHash)return row;}
+    try{return await this.db.campaign.create({include,data:{...base,ownerId:userId,creationKey,creationPayloadHash:creationKey?creationPayloadHash:undefined,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):undefined,planningContext}});}catch(e){
+      if(creationKey&&e instanceof Prisma.PrismaClientKnownRequestError&&e.code==='P2002'){const row=await this.db.campaign.findUnique({where:{creationKey},include});if(row?.creationPayloadHash===creationPayloadHash&&(!userId||row.ownerId===userId))return row;}
       throw e;
     }
   }
-  async get(id: string) {
-    const campaign = await this.db.campaign.findUnique({ where: { id }, include });
+  async get(id: string,userId?:string) {
+    const campaign = await this.db.campaign.findFirst({ where: { id, ...(userId?{ownerId:userId}:{}) }, include });
     if (!campaign) throw new NotFoundException('کمپین پیدا نشد');
     return {...campaign,context:normalizedContext(campaign)};
   }

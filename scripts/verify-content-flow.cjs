@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const path=require('node:path');
 process.loadEnvFile(path.resolve(__dirname,'../apps/api/.env'));
 const {PrismaClient}=require('../apps/api/node_modules/@prisma/client');
-const {ContentService}=require('../apps/api/dist/ai/content.service');
+const {ContentService}=require('../apps/api/dist/src/ai/content.service');
 const db=new PrismaClient();let id;
 async function main(){
   const campaign=await db.campaign.create({data:{name:'Content integration test',businessType:'مشاوره',campaignType:'جذب مشتری',product:'مشاوره',duration:1,status:'ACTIVE',salesPath:{action:'رزرو مشاوره',details:'پیام به پشتیبانی'},days:{create:{dayNumber:1,date:new Date(),phase:'اعتماد',mission:'شناخت روش',objective:'تماس',tasks:{create:[{title:'معرفی روش',type:'CONTENT',format:'متن',cta:'رزرو مشاوره',why:'شناخت روش'},{title:'بررسی پیام‌ها',type:'SUPPORT'}]}}}},include:{days:{include:{tasks:true}}}});

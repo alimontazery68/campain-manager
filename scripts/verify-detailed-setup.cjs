@@ -1,4 +1,5 @@
 const assert=require('node:assert/strict');
+const {createHmac,randomUUID}=require('node:crypto');
 const fs=require('node:fs'),path=require('node:path'),Module=require('node:module');
 const ts=require('../apps/web/node_modules/typescript');
 const filename=path.resolve(__dirname,'../apps/web/app/planning-details.ts');
@@ -7,10 +8,13 @@ const helper=new Module(filename,module);helper.filename=filename;helper.paths=m
 const {emptyDetails,buildDetailedInput}=helper.exports;
 process.loadEnvFile(path.resolve(__dirname,'../apps/api/.env'));
 const {PrismaClient}=require('../apps/api/node_modules/@prisma/client');
-const {PlanningService}=require('../apps/api/dist/ai/planning.service');
+const {PlanningService}=require('../apps/api/dist/src/ai/planning.service');
 const {fixture}=require('./planning-fixtures.cjs');
-const db=new PrismaClient(),ids=[];
+const db=new PrismaClient(),ids=[];let user;
+function session(userId){const payload=Buffer.from(JSON.stringify({sub:userId,exp:Date.now()+3600000})).toString('base64url');return `${payload}.${createHmac('sha256',process.env.AUTH_SESSION_SECRET||'change-me').update(payload).digest('base64url')}`;}
 async function main(){
+ user=await db.user.create({data:{phone:'09'+randomUUID().replace(/\D/g,'').slice(0,9)}});
+ const realFetch=global.fetch;global.fetch=(url,options={})=>realFetch(url,{...options,headers:{cookie:`campaign_session=${session(user.id)}`,...(options.headers||{})}});
  assert.deepEqual(buildDetailedInput(emptyDetails),{maxContentPerDay:1});
  const detailed={...emptyDetails,mode:'detailed'};
  assert.deepEqual(buildDetailedInput(detailed),{maxContentPerDay:1,objections:null,proofAssets:null,availableContentFormats:null});
@@ -35,4 +39,4 @@ async function main(){
  }
  console.log('PASS: quick/detailed mapping, unknown versus none, Persian counts including zero, invalid inputs, HTTP persistence, exact planning input and one cached mocked AI request per plan. No live AI calls.');
 }
-main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{for(const id of ids)await db.campaign.delete({where:{id}});await db.$disconnect();});
+main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{for(const id of ids)await db.campaign.delete({where:{id}});if(user)await db.user.delete({where:{id:user.id}});await db.$disconnect();});

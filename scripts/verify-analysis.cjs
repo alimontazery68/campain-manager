@@ -1,11 +1,11 @@
 const assert=require('node:assert/strict'),path=require('node:path');
 process.loadEnvFile(path.resolve(__dirname,'../apps/api/.env'));
 const {PrismaClient}=require('../apps/api/node_modules/@prisma/client');
-const {AnalysisService}=require('../apps/api/dist/ai/analysis.service');
-const {validateOptimization,optimizationInput,deterministicCalculations}=require('../apps/api/dist/ai/optimization');
-const {ResultsService}=require('../apps/api/dist/results.service');
-const {DeepSeekProvider}=require('../apps/api/dist/ai/deepseek');
-const {optimizationPrompt}=require('../apps/api/dist/ai/optimization');
+const {AnalysisService}=require('../apps/api/dist/src/ai/analysis.service');
+const {validateOptimization,optimizationInput,deterministicCalculations}=require('../apps/api/dist/src/ai/optimization');
+const {ResultsService}=require('../apps/api/dist/src/results.service');
+const {DeepSeekProvider}=require('../apps/api/dist/src/ai/deepseek');
+const {optimizationPrompt}=require('../apps/api/dist/src/ai/optimization');
 const {review,task}=require('./optimization-fixtures.cjs');
 const db=new PrismaClient(),ids=[];
 async function main(){

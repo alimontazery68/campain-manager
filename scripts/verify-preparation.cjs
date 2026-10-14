@@ -1,16 +1,20 @@
 const assert=require('node:assert/strict'),path=require('node:path');
+const {createHmac,randomUUID}=require('node:crypto');
 process.loadEnvFile(path.resolve(__dirname,'../apps/api/.env'));
 const {PrismaClient}=require('../apps/api/node_modules/@prisma/client');
-const {PreparationService}=require('../apps/api/dist/preparation.service');
-const {PlanningService}=require('../apps/api/dist/ai/planning.service');
-const {CompletionService}=require('../apps/api/dist/completion.service');
+const {PreparationService}=require('../apps/api/dist/src/preparation.service');
+const {PlanningService}=require('../apps/api/dist/src/ai/planning.service');
+const {CompletionService}=require('../apps/api/dist/src/completion.service');
 const {fixture}=require('./planning-fixtures.cjs');
-const db=new PrismaClient(),ids=[];
+const db=new PrismaClient(),ids=[];let testUser;
+function session(userId){const payload=Buffer.from(JSON.stringify({sub:userId,exp:Date.now()+3600000})).toString('base64url');return `${payload}.${createHmac('sha256',process.env.AUTH_SESSION_SECRET||'change-me').update(payload).digest('base64url')}`;}
 const base=process.env.TEST_BASE_URL||'http://127.0.0.1:'+(process.env.API_PORT||4000);
 async function main(){
+ testUser=await db.user.create({data:{phone:'09'+randomUUID().replace(/\D/g,'').slice(0,9)}});
  const plan=fixture();plan.preparation.push({title:'آماده‌کردن توضیح تمرین',why:'پاسخ به تردید زمان',requiredBeforeDay:2});
  const c=await db.campaign.create({data:{name:'Preparation test',businessType:'آموزش',campaignType:'فروش',product:'دوره',duration:2,aiPlan:plan}});ids.push(c.id);
- const preparation=new PreparationService(db),planning=new PlanningService(db,{json:async()=>{throw Error('AI must not be called');}}),completion=new CompletionService(db);
+ await db.campaign.update({where:{id:c.id},data:{ownerId:testUser.id}});
+ const preparation=new PreparationService(db),planning=new PlanningService(db,{json:async()=>{throw Error('AI must not be called');}}),completion=new CompletionService(db); const headers={cookie:`campaign_session=${session(testUser.id)}`};
  assert.deepEqual((await preparation.get(c.id)).items,[]);await assert.rejects(()=>preparation.initialize(c.id));
  await planning.approve(c.id);let checklist=await preparation.get(c.id);assert.equal(checklist.initialized,true);assert.equal(checklist.items.length,2);assert.equal(checklist.items[1].requiredBeforeDay,2);
  await planning.approve(c.id);await preparation.initialize(c.id);assert.equal(await db.preparationTask.count({where:{campaignId:c.id}}),2);
@@ -20,8 +24,8 @@ async function main(){
  await assert.rejects(()=>completion.complete(c.id,{sourceHash:summary.sourceHash,confirm:true,allowEarly:true,learnings:[]}));
  await planning.approve(c.id);assert.equal((await preparation.get(c.id)).items[0].completed,true);
  assert.equal(await db.task.count({where:{day:{campaignId:c.id},status:'DONE'}}),0,'Checklist must not silently finish daily tasks');
- const response=await fetch(base+'/campaigns/preparation/'+done.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({completed:false,expectedCompleted:true,expectedUpdatedAt:done.updatedAt.toISOString()})});assert.equal(response.status,200);
- const read=await fetch(base+'/campaigns/'+c.id+'/preparation');assert.equal(read.status,200);assert.equal((await read.json()).items[0].completed,false);
+ const response=await fetch(base+'/campaigns/preparation/'+done.id,{method:'PATCH',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({completed:false,expectedCompleted:true,expectedUpdatedAt:done.updatedAt.toISOString()})});assert.equal(response.status,200);
+ const read=await fetch(base+'/campaigns/'+c.id+'/preparation',{headers});assert.equal(read.status,200);assert.equal((await read.json()).items[0].completed,false);
  const final=await completion.get(c.id);assert.equal(final.summary.preparation.total,2);await completion.complete(c.id,{sourceHash:final.sourceHash,confirm:true,allowEarly:true,learnings:[]});
  const last=(await preparation.get(c.id)).items[0];await assert.rejects(()=>preparation.update(last.id,{completed:true,expectedCompleted:last.completed,expectedUpdatedAt:last.updatedAt.toISOString()}));
  await assert.rejects(()=>preparation.initialize(c.id));
@@ -30,7 +34,7 @@ async function main(){
  assert.equal((await preparation.get(legacy.id)).initialized,false);assert.equal(await db.preparationTask.count({where:{campaignId:legacy.id}}),0,'GET must be read only');
  await Promise.all([preparation.initialize(legacy.id),preparation.initialize(legacy.id)]);
  const restored=await preparation.get(legacy.id);assert.equal(restored.items.length,1);assert.equal(restored.items[0].requiredBeforeDay,null);assert.deepEqual((await db.campaign.findUnique({where:{id:legacy.id}})).aiPlan,old);
- const missing=await fetch(base+'/campaigns/preparation/not-a-real-item',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({completed:true,expectedCompleted:false,expectedUpdatedAt:new Date().toISOString()})});assert.equal(missing.status,404);
+ const missing=await fetch(base+'/campaigns/preparation/not-a-real-item',{method:'PATCH',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({completed:true,expectedCompleted:false,expectedUpdatedAt:new Date().toISOString()})});assert.equal(missing.status,404);
  console.log('PASS: approval-only checklist, dependencies, idempotence, persistent toggle, stale guard, separate daily tasks, final read-only status, completion snapshot invalidation, concurrent legacy initialization and HTTP routes. No AI calls.');
 }
-main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{for(const id of ids)await db.campaign.delete({where:{id}});await db.$disconnect();});
+main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{for(const id of ids)await db.campaign.delete({where:{id}});if(testUser)await db.user.delete({where:{id:testUser.id}});await db.$disconnect();});

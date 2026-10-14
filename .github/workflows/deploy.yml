@@ -57,6 +57,11 @@ jobs:
           APP_DIR=/var/www/campain-manager
           mkdir -p "$APP_DIR"
           test -f "$APP_DIR/apps/api/.env" || { echo "Missing $APP_DIR/apps/api/.env"; exit 1; }
+          grep -Eq '^AUTH_SESSION_SECRET=[^[:space:]]+' "$APP_DIR/apps/api/.env" || { echo "Missing AUTH_SESSION_SECRET in apps/api/.env"; exit 1; }
+          if grep -Eq '^SMS_ENABLED=(1|true|TRUE)$' "$APP_DIR/apps/api/.env"; then
+            grep -Eq '^IPPANEL_API_KEY=[^[:space:]]+' "$APP_DIR/apps/api/.env" || { echo "Missing IPPANEL_API_KEY in apps/api/.env"; exit 1; }
+            grep -Eq '^IPPANEL_OTP_PATTERN_CODE=[^[:space:]]+' "$APP_DIR/apps/api/.env" || { echo "Missing IPPANEL_OTP_PATTERN_CODE in apps/api/.env"; exit 1; }
+          fi
           tar -xzf /tmp/campain-manager.tar.gz -C "$APP_DIR"
           rm -f /tmp/campain-manager.tar.gz
           cd "$APP_DIR"

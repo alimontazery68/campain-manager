@@ -8,6 +8,9 @@ const fieldLabels: Record<string,string> = {
 export function responseError(status:number,body:unknown):string {
   const data = body && typeof body==='object' ? body as Record<string,unknown> : {};
   const message=data.message;
+  if(status===401 && (!message || message==='Unauthorized')) return 'نشست ورود معتبر نیست؛ از حساب خارج شو و دوباره وارد شو. اطلاعاتت حفظ شده است.';
+  if(status===403 && (!message || message==='Forbidden')) return 'به این اطلاعات دسترسی نداری.';
+  if(status===404 && typeof message==='string' && message.startsWith('Cannot ')) return 'این بخش پیدا نشد؛ صفحه را تازه کن و دوباره تلاش کن.';
   if(typeof message==='string') return message;
   if(status===400 && message && typeof message==='object') {
     const fields=(message as Record<string,unknown>).fieldErrors;
@@ -24,7 +27,7 @@ export function responseError(status:number,body:unknown):string {
 export async function request<T>(path:string,init?:RequestInit):Promise<T> {
   let response:Response;
   try {
-    response=await fetch('/api/'+path,{...init,cache:'no-store',headers:{'Content-Type':'application/json',...init?.headers}});
+    response=await fetch('/api/'+path,{...init,credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',...init?.headers}});
   } catch {
     throw new Error('ارتباط با سرور برقرار نشد. اتصال و اجرای پروژه را بررسی کن؛ اطلاعاتت حفظ شده است.');
   }

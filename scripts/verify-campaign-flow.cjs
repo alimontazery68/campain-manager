@@ -1,11 +1,15 @@
 const assert = require('node:assert/strict');
+const {createHmac,randomUUID}=require('node:crypto');
 const path = require('node:path');
 process.loadEnvFile(path.resolve(__dirname, '../apps/api/.env'));
 const {PrismaClient} = require('../apps/api/node_modules/@prisma/client');
 const db = new PrismaClient();
 const base = process.env.TEST_BASE_URL || `http://127.0.0.1:${process.env.API_PORT || 4000}`;
-let createdId;
+let createdId;let user;
+function session(userId){const payload=Buffer.from(JSON.stringify({sub:userId,exp:Date.now()+3600000})).toString('base64url');return `${payload}.${createHmac('sha256',process.env.AUTH_SESSION_SECRET||'change-me').update(payload).digest('base64url')}`;}
 async function main() {
+  user=await db.user.create({data:{phone:'09'+randomUUID().replace(/\D/g,'').slice(0,9)}});
+  const realFetch=global.fetch;global.fetch=(url,options={})=>realFetch(url,{...options,headers:{cookie:`campaign_session=${session(user.id)}`,...(options.headers||{})}});
   const input = {name:'تست خودکار اتصال کمپین', businessType:'مشاوره',campaignType:'جذب مشتری بالقوه',product:'جلسه مشاوره کسب‌وکار',audience:'صاحبان کسب‌وکار',duration:3,offer:{kind:'پیشنهاد خاصی ندارم',details:''},salesPath:{action:'رزرو مشاوره',details:'پیام به پشتیبانی'}};
   let response = await fetch(base+'/campaigns',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});
   assert.equal(response.status,201);
@@ -45,5 +49,5 @@ async function main() {
 }
 main().catch(error=>{console.error(error.message);process.exitCode=1;}).finally(async()=>{
   if(createdId) await db.campaign.delete({where:{id:createdId}});
-  await db.$disconnect();
+  if(user) await db.user.delete({where:{id:user.id}});await db.$disconnect();
 });

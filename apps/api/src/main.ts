@@ -5,7 +5,7 @@ const envPath = resolve(__dirname, '../.env');
 if (existsSync(envPath)) process.loadEnvFile(envPath);
 async function bootstrap(){
  const app=await NestFactory.create(AppModule);
- app.enableCors({origin:(process.env.WEB_ORIGIN||`http://localhost:${process.env.WEB_PORT||3000}`).split(','),methods:['GET','POST','PATCH','OPTIONS']});
+ app.enableCors({origin:(process.env.WEB_ORIGIN||`http://localhost:${process.env.WEB_PORT||3000}`).split(','),credentials:true,methods:['GET','POST','PATCH','OPTIONS']});
  const buckets=new Map<string,{count:number;reset:number}>();
  app.use((req:any,res:any,next:()=>void)=>{
   res.setHeader('X-Content-Type-Options','nosniff');
@@ -14,6 +14,11 @@ async function bootstrap(){
    if(!bucket||bucket.reset<now){bucket={count:0,reset:now+60000};buckets.set(key,bucket);}
    if(++bucket.count>Number(process.env.AI_REQUESTS_PER_MINUTE||20)){res.status(429).json({message:'درخواست‌های AI زیاد شده؛ یک دقیقه صبر کن.'});return;}
    if(buckets.size>1000)for(const [ip,value] of buckets)if(value.reset<now)buckets.delete(ip);
+  }
+  if(req.method==='POST'&&req.path==='/auth/request-otp'){
+   const now=Date.now(),key='otp:'+String(req.socket.remoteAddress||'local');let bucket=buckets.get(key);
+   if(!bucket||bucket.reset<now){bucket={count:0,reset:now+60000};buckets.set(key,bucket);}
+   if(++bucket.count>Number(process.env.OTP_REQUESTS_PER_MINUTE||5)){res.status(429).json({message:'لطفاً کمی بعد دوباره تلاش کنید.'});return;}
   }next();
  });
  await app.listen(process.env.API_PORT||4000,process.env.API_HOST||'127.0.0.1');

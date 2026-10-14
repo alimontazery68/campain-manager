@@ -1,21 +1,24 @@
 // Full persisted path with the real provider serializer and a mocked transport: no paid requests.
 const assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs'),Module=require('node:module');
+const {createHmac,randomUUID}=require('node:crypto');
 process.loadEnvFile(path.resolve(__dirname,'../apps/api/.env'));
 const ts=require('../apps/web/node_modules/typescript'),file=path.resolve(__dirname,'../apps/web/app/planning-details.ts');
 const helper=new Module(file,module);helper.filename=file;helper.paths=module.paths;
 helper._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,file);
 const {buildDetailedInput,emptyDetails}=helper.exports;
 const {PrismaClient}=require('../apps/api/node_modules/@prisma/client');
-const {PlanningService}=require('../apps/api/dist/ai/planning.service');
-const {DeepSeekProvider}=require('../apps/api/dist/ai/deepseek');
-const {planningPrompt}=require('../apps/api/dist/ai/planning');
+const {PlanningService}=require('../apps/api/dist/src/ai/planning.service');
+const {DeepSeekProvider}=require('../apps/api/dist/src/ai/deepseek');
+const {planningPrompt}=require('../apps/api/dist/src/ai/planning');
 const {fixture}=require('./planning-fixtures.cjs');
-const db=new PrismaClient(),ids=[],realFetch=global.fetch,oldKey=process.env.DEEPSEEK_API_KEY,oldBase=process.env.DEEPSEEK_BASE_URL;
+const db=new PrismaClient(),ids=[],realFetch=global.fetch,oldKey=process.env.DEEPSEEK_API_KEY,oldBase=process.env.DEEPSEEK_BASE_URL;let user;
+function session(userId){const payload=Buffer.from(JSON.stringify({sub:userId,exp:Date.now()+3600000})).toString('base64url');return `${payload}.${createHmac('sha256',process.env.AUTH_SESSION_SECRET||'change-me').update(payload).digest('base64url')}`;}
 async function main(){
+ user=await db.user.create({data:{phone:'09'+randomUUID().replace(/\D/g,'').slice(0,9)}});const headers={cookie:`campaign_session=${session(user.id)}`};
  const details=buildDetailedInput({...emptyDetails,mode:'detailed',maxContentPerDay:3,objectionsStatus:'known',objections:'وقت ندارم\nگران است\nنتیجه می‌گیرم؟',proofStatus:'known',proofs:[{type:'text_testimonial',description:'۴۰ رضایت متنی واقعی',count:'۴۰'},{type:'video_testimonial',description:'۸ رضایت ویدیویی واقعی',count:'۸'}],formatsStatus:'known',formats:['متن','ویس','ویدیو']});
  const conversionPath={action:'پیام به پشتیبانی',details:'پرسش، بررسی تناسب و پرداخت',steps:['پرسش','بررسی تناسب','پرداخت']};
  const api=process.env.TEST_BASE_URL||'http://127.0.0.1:'+(process.env.API_PORT||4000);
- const response=await realFetch(api+'/campaigns',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Planning data flow test',businessType:'آموزش',campaignType:'فروش',product:'دوره مکالمه',audience:'زبان‌آموز',duration:2,target:20,offer:{kind:'بدون تخفیف',details:'شرایط واقعی'},salesPath:{action:'مسیر قدیمی',details:''},conversionPath,...details})});
+ const response=await realFetch(api+'/campaigns',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({name:'Planning data flow test',businessType:'آموزش',campaignType:'فروش',product:'دوره مکالمه',audience:'زبان‌آموز',duration:2,target:20,offer:{kind:'بدون تخفیف',details:'شرایط واقعی'},salesPath:{action:'مسیر قدیمی',details:''},conversionPath,...details})});
  assert.equal(response.status,201);const c=await response.json();ids.push(c.id);assert.equal(c.days.length,0);
  const stored=await db.campaign.findUniqueOrThrow({where:{id:c.id}});
  for(const field of ['objections','proofAssets','availableContentFormats'])assert.deepEqual(stored.planningContext[field],details[field]);
@@ -41,10 +44,10 @@ async function main(){
  const normalized=requestInput.normalizedContext;assert.deepEqual(normalized.audience.objections,details.objections);assert.deepEqual(normalized.proofAssets,details.proofAssets);assert.deepEqual(normalized.contentResources,details.availableContentFormats);assert.deepEqual(normalized.conversionPath,conversionPath);assert.equal(normalized.executionCapacity.maxContentPerDay,3);
  assert.deepEqual((await db.campaign.findUniqueOrThrow({where:{id:c.id}})).aiPlan.days,plan.days);
  await planning.approve(c.id);assert.equal(calls,1);global.fetch=realFetch;
- const reread=await realFetch(api+'/campaigns/'+c.id);assert.equal(reread.status,200);const execution=await reread.json();
+ const reread=await realFetch(api+'/campaigns/'+c.id,{headers});assert.equal(reread.status,200);const execution=await reread.json();
  for(const day of execution.days){const planned=plan.days.find(p=>p.dayNumber===day.dayNumber);assert.deepEqual(day.guidance.successSignals,planned.successSignals);assert.equal(day.guidance.ctaIntensity,planned.ctaIntensity);assert.deepEqual(day.guidance.decisionCriteria,planned.decisionCriteria);assert.equal(day.tasks.filter(t=>t.type==='CONTENT').length,planned.tasks.filter(t=>t.type==='CONTENT').length);}
  const content=execution.days[0].tasks.filter(t=>t.type==='CONTENT');assert.deepEqual(content.map(t=>t.format),['ویدیو','ویس']);assert.equal(content[0].requiredAsset,details.proofAssets[1].description);assert.equal(content[0].cta,plan.days[0].tasks[0].cta);
  assert.equal(execution.days[1].guidance.decisionPoint,false);assert.deepEqual(execution.context.proofAssets,details.proofAssets);
  console.log('PASS: setup helper → HTTP → PostgreSQL → normalized context → actual DeepSeek serialization (mocked transport) → validated saved plan → approval → execution API. Proof, objections, formats, path, capacity, daily signals/CTA and final review survive; one provider call.');
 }
-main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{global.fetch=realFetch;if(oldKey===undefined)delete process.env.DEEPSEEK_API_KEY;else process.env.DEEPSEEK_API_KEY=oldKey;if(oldBase===undefined)delete process.env.DEEPSEEK_BASE_URL;else process.env.DEEPSEEK_BASE_URL=oldBase;for(const id of ids)await db.campaign.delete({where:{id}});await db.$disconnect();});
+main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{global.fetch=realFetch;if(oldKey===undefined)delete process.env.DEEPSEEK_API_KEY;else process.env.DEEPSEEK_API_KEY=oldKey;if(oldBase===undefined)delete process.env.DEEPSEEK_BASE_URL;else process.env.DEEPSEEK_BASE_URL=oldBase;for(const id of ids)await db.campaign.delete({where:{id}});if(user)await db.user.delete({where:{id:user.id}});await db.$disconnect();});

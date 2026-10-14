@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {validateRevision,revisionBrief,buildContentPrompt}=require('../apps/api/dist/ai/content');
+const {validateRevision,revisionBrief,buildContentPrompt}=require('../apps/api/dist/src/ai/content');
 const original=Array.from({length:40},(_,i)=>'واژه'+i).join(' ');
 test('shortening has a measurable budget and rejects insufficient reduction',()=>{
   assert.equal(revisionBrief('shorter',original).maxWords,26);

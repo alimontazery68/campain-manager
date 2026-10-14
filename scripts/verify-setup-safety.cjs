@@ -1,8 +1,8 @@
 const assert=require('node:assert/strict'),path=require('node:path'),{randomUUID}=require('node:crypto');
 process.loadEnvFile(path.resolve(__dirname,'../apps/api/.env'));
 const {PrismaClient}=require('../apps/api/node_modules/@prisma/client');
-const {CampaignsService}=require('../apps/api/dist/campaigns.service');
-const {PlanningService}=require('../apps/api/dist/ai/planning.service');
+const {CampaignsService}=require('../apps/api/dist/src/campaigns.service');
+const {PlanningService}=require('../apps/api/dist/src/ai/planning.service');
 const {fixture}=require('./planning-fixtures.cjs');
 const db=new PrismaClient(),ids=[];
 async function main(){
