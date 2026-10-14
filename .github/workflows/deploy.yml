@@ -70,6 +70,7 @@ jobs:
           cd apps/api
           npx prisma migrate deploy
           cd ../..
+          npm --prefix apps/api run prisma:seed
           npm run build:api
           npm run build:web
 
@@ -118,6 +119,18 @@ jobs:
           systemctl daemon-reload
           systemctl restart campain-manager-api
           systemctl restart campain-manager-web
-          curl -fsS http://127.0.0.1:${API_PORT:-4001}/health
+          API_HEALTH_URL="http://127.0.0.1:${API_PORT:-4001}/health"
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$API_HEALTH_URL"; then
+              echo
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "API did not become healthy: $API_HEALTH_URL" >&2
+              systemctl status campain-manager-api --no-pager -l || true
+              exit 1
+            fi
+            sleep 2
+          done
           echo "DEPLOY OK"
           REMOTE
