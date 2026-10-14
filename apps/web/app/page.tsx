@@ -38,8 +38,7 @@ function AuthScreen({onSuccess}:{onSuccess:()=>void}) {
   return <main className="shell"><section className="content" style={{maxWidth:520,margin:'12vh auto'}}><h1>ورود به کمپین‌منیجر</h1><p>برای ورود، شماره موبایل خود را وارد کنید.</p><label className="field">شماره موبایل<input dir="ltr" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="09121234567"/></label>{sent&&<label className="field">کد تایید<input dir="ltr" inputMode="numeric" value={code} onChange={e=>setCode(e.target.value)} maxLength={6}/></label>}<button className="primary" disabled={busy||!phone||(sent&&!code)} onClick={()=>void submit()}>{busy?'در حال بررسی…':sent?'ورود':'دریافت کد تایید'}</button>{error&&<p className="error">{error}</p>}</section></main>;
 }
 
-export default function Home() {
-  const [authenticated, setAuthenticated] = useState(false);
+function Dashboard() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selected, setSelected] = useState('');
   const [view, setView] = useState('dashboard');
@@ -59,7 +58,7 @@ export default function Home() {
     try { setCampaigns(await request<Campaign[]>('campaigns')); } catch(e) { setError((e as Error).message); }
     finally { setLoading(false); }
   }
-  useEffect(()=>{ if(!authenticated) return; void load(); try {const saved = localStorage.getItem(draftKey); if(saved){const restored=JSON.parse(saved);setDraft({...empty,...restored,details:{...emptyDetails,...restored.details}});}} catch { /* Invalid local draft: use defaults. */ } setHydrated(true); }, [authenticated]);
+  useEffect(()=>{ void load(); try {const saved = localStorage.getItem(draftKey); if(saved){const restored=JSON.parse(saved);setDraft({...empty,...restored,details:{...emptyDetails,...restored.details}});}} catch { /* Invalid local draft: use defaults. */ } setHydrated(true); }, []);
   useEffect(()=>{if(hydrated) localStorage.setItem(draftKey, JSON.stringify(draft));}, [draft, hydrated]);
   useEffect(()=>{if(!wizard) return; const handler=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!saving)setWizard(false);}; document.addEventListener('keydown',handler); return ()=>document.removeEventListener('keydown',handler);}, [wizard,saving]);
   const campaign = campaigns.find(c=>c.id===selected) || campaigns[0];
@@ -182,4 +181,9 @@ export default function Home() {
       <div className="wizard-actions"><button className="primary" aria-describedby={stepErrors[step]?'step-error':undefined} disabled={saving||!!stepErrors[step]} onClick={advance}>{saving?'در حال ذخیره…':step===7?(stepErrors.some(Boolean)?'اصلاح اطلاعات ناقص':'ثبت کمپین'):'ادامه'}</button>{step>0&&<button className="outline" disabled={saving} onClick={()=>setStep(step-1)}>بازگشت</button>}</div>
     </section></div>}
   </main>;
+}
+
+export default function Home() {
+  const [authenticated, setAuthenticated] = useState(false);
+  return authenticated ? <Dashboard /> : <AuthScreen onSuccess={() => setAuthenticated(true)} />;
 }
