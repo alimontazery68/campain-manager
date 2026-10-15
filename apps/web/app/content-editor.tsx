@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-type ContentTask = {id:string;title:string;content?:string|null;cta?:string;why?:string};
-export default function ContentEditor({task,onClose,onSaved,inline=false}:{inline?:boolean;task:ContentTask;onClose:()=>void;onSaved:(id:string,content:string)=>void}) {
+import { createPortal } from 'react-dom';
+import { defaultContentOptions, type ContentOptions } from './content-options';
+type ContentTask = {id:string;title:string;format?:string|null;content?:string|null;cta?:string;why?:string};
+export default function ContentEditor({task,onClose,onSaved,inline=false,settingsTarget}:{inline?:boolean;settingsTarget?:HTMLElement|null;task:ContentTask;onClose:()=>void;onSaved:(id:string,content:string)=>void}) {
   const dialog=useRef<HTMLDialogElement>(null);
   const key='campaign-content-draft-'+task.id;
   const [text,setText]=useState(task.content || '');
@@ -11,6 +13,10 @@ export default function ContentEditor({task,onClose,onSaved,inline=false}:{inlin
   const [notice,setNotice]=useState('');
   const [previous,setPrevious]=useState<string|null>(null);
   const [rewrite,setRewrite]=useState('shorter');
+  const [options,setOptions]=useState<ContentOptions>(defaultContentOptions);
+  const optionsKey='campaign-content-options-'+task.id;
+  useEffect(()=>{try{const raw=localStorage.getItem(optionsKey);if(raw){const value=JSON.parse(raw);setOptions({tone:['campaign','friendly','formal','energetic'].includes(value.tone)?value.tone:'campaign',format:['task','text','voice','video','image','demo'].includes(value.format)?value.format:'task',instructions:typeof value.instructions==='string'?value.instructions.slice(0,1500):''});}}catch{}},[optionsKey]);
+  function updateOptions(next:ContentOptions){setOptions(next);try{localStorage.setItem(optionsKey,JSON.stringify(next));}catch{}}
   useEffect(()=>{
     if(!inline)dialog.current?.showModal();
     try {const draft=localStorage.getItem(key);if(draft!==null)setText(draft);} catch {}
@@ -31,7 +37,7 @@ export default function ContentEditor({task,onClose,onSaved,inline=false}:{inlin
       }
       const response=await fetch('/api/campaigns/tasks/'+task.id+'/content',{
         method:manual?'PATCH':'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(manual?{content:text,expectedContent:saved}:{action})
+        body:JSON.stringify(manual?{content:text,expectedContent:saved}:{action,preferences:options})
       });
       const result=await response.json().catch(()=>null);
       if(!response.ok)throw new Error(typeof result?.message==='string'?result.message:'ذخیره انجام نشد. متن تو حفظ شده است.');
@@ -44,7 +50,9 @@ export default function ContentEditor({task,onClose,onSaved,inline=false}:{inlin
     try {await navigator.clipboard.writeText(text);setNotice('متن کپی شد.');}
     catch {setError('کپی خودکار ممکن نشد؛ متن را انتخاب و کپی کن.');}
   }
+  const settings=<fieldset className="content-generation-settings" disabled={busy}><legend>تنظیمات تولید محتوا</legend><label className="field">لحن محتوا<select value={options.tone} onChange={e=>updateOptions({...options,tone:e.target.value as ContentOptions['tone']})}><option value="campaign">مطابق کمپین</option><option value="friendly">صمیمی</option><option value="formal">رسمی</option><option value="energetic">هیجانی</option></select></label><label className="field">قالب خروجی<select value={options.format} onChange={e=>updateOptions({...options,format:e.target.value as ContentOptions['format']})}><option value="task">مطابق کار{task.format?'؛ '+task.format:''}</option><option value="text">متن پست</option><option value="voice">متن ویس</option><option value="video">سناریوی ویدیو</option><option value="image">متن تصویر و کپشن</option><option value="demo">سناریوی نمایش محصول</option></select></label><details><summary>راهنمای تکمیلی (اختیاری)</summary><label className="field">چه نکته‌ای در متن پررنگ‌تر شود؟<textarea rows={3} maxLength={1500} placeholder="مثلاً روی زمان کم تمرین تأکید کن" value={options.instructions} onChange={e=>updateOptions({...options,instructions:e.target.value})}/></label></details><p className="wizard-hint">خروجی این بخش متن یا سناریو است؛ فایل تصویر، صوت یا ویدیو ساخته نمی‌شود. انتخاب قالب، برنامه تأییدشده را تغییر نمی‌دهد.</p><p className="wizard-hint">تنظیمات با دکمه ساخت یا بازنویسی اعمال می‌شوند و در همین مرورگر برای این کار حفظ می‌شوند.</p></fieldset>;
   const body=<>
+    {settingsTarget?createPortal(settings,settingsTarget):!inline?settings:null}
     {!inline&&<button className="close" disabled={busy} aria-label="بستن و نگهداری پیش‌نویس" onClick={onClose}>×</button>}
     <h2 id="content-title">محتوای این کار</h2><h3>{task.title}</h3><p className="wizard-hint">{task.why}</p>{task.cta&&<p>اقدام مخاطب: {task.cta}</p>}
     <label className="field">متن قابل ویرایش<textarea autoFocus rows={12} maxLength={12000} value={text} disabled={busy} onChange={e=>{setText(e.target.value);try {localStorage.setItem(key,e.target.value);} catch {}}}/></label>

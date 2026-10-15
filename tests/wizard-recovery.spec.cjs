@@ -8,11 +8,11 @@ test('wizard recovers input and retries with the same creation key',async({page}
   return r.fulfill({status:503,json:{message:'خطای آزمایشی'}});
  });
  await page.goto('/');await page.locator('.empty-state .primary').click();
- let w=page.getByRole('dialog');
+ let w=page.locator('.simple-wizard');
  await w.getByLabel('نام کمپین',{exact:true}).fill('کمپین بازیابی');
  await w.getByLabel('چه محصول یا خدمتی').fill('محصول واقعی');
  await w.getByLabel('هدف اصلی').selectOption('افزایش فروش');
- await page.reload();await page.locator('.empty-state .primary').click();w=page.getByRole('dialog');
+ await page.reload();await page.locator('.empty-state .primary').click();w=page.locator('.simple-wizard');
  await expect(w.getByLabel('نام کمپین',{exact:true})).toHaveValue('کمپین بازیابی');
  await w.getByRole('button',{name:'ادامه',exact:true}).click();
  await w.getByLabel('پلتفرم اصلی').selectOption('تلگرام');

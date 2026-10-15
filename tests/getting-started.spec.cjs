@@ -22,9 +22,9 @@ for(const hasCampaign of [false,true])test(`guide works with ${hasCampaign?'an e
  await expect(page.locator('#guide-panel-7')).toContainText('فایل اکسل');
  await steps.first().click();
  await page.getByRole('button',{name:'ساخت کمپین جدید',exact:true}).click();
- await expect(page.getByRole('dialog')).toBeVisible();
- await page.getByRole('button',{name:'بستن',exact:true}).click();
- await expect(page.getByRole('dialog')).toHaveCount(0);
+ await expect(page.locator('.simple-wizard')).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.locator('.modal-backdrop')).toHaveCount(0);
+ await page.getByRole('button',{name:'بازگشت به فضای کار',exact:true}).click();
+ await expect(page.locator('.simple-wizard')).toHaveCount(0);
  const question=page.locator('.guide-faq summary').first();await question.focus();await page.keyboard.press('Enter');
  await expect(page.locator('.guide-faq details').first()).toHaveAttribute('open','');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);

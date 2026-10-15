@@ -9,7 +9,7 @@ type Day={id:string;dayNumber:number;mission:string;tasks:Task[]};
 type Analysis={sourceHash:string;status:string;stale?:boolean;createdAt:string;report:Legacy|Modern;beforeDays?:Day[]};
 export default function CampaignAnalysis({campaignId,days,hasResults,onApplied}:{campaignId:string;days:Day[];hasResults:boolean;onApplied:()=>Promise<void>}){
  const [analysis,setAnalysis]=useState<Analysis|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
- useEffect(()=>{let active=true;request<Analysis|null>('campaigns/'+campaignId+'/analysis').then(a=>{if(active)setAnalysis(a);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[campaignId,days]);
+ useEffect(()=>{let active=true;setError('');request<Analysis|null>('campaigns/'+campaignId+'/analysis').then(a=>{if(active){setAnalysis(a);setError('');}}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[campaignId,days]);
  async function act(action:'analyze'|'apply'|'dismiss'){
   if(busy)return;setBusy(true);setError('');
   try{const result=await request<Analysis>('campaigns/'+campaignId+'/analysis'+(action==='analyze'?'':'/decision'),{method:'POST',body:action==='analyze'?undefined:JSON.stringify({action,sourceHash:analysis?.sourceHash})});setAnalysis(result);if(action==='apply')await onApplied();}

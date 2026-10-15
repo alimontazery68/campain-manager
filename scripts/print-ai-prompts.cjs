@@ -13,6 +13,7 @@ console.log('پیش از دستور تخصصی این خط قرار می‌گی�
 for(const [action,instruction] of Object.entries(revisionInstructions)) console.log('### '+action+'\n\n```text\n'+instruction+'\n```\n');
 console.log('پس از دستور تخصصی، این جمله نیز افزوده می‌شود:\n\n```text\nBefore returning, privately check that the requested transformation is substantial and that the mission, real facts, format and appropriate CTA are preserved. Return only the specified JSON.\n```\n');
 console.log('داده user: action، متن فعلی، اطلاعات واقعی کمپین، طرح تأییدشده، شماره روز، مرحله، مأموریت و هدف روز، عنوان وظیفه، قالب، دلیل و CTA.\n');
+console.log('generationPreferences شامل tone، format، effectiveFormat و instructions است. قالب مؤثر از انتخاب کاربر یا قالب اصلی کار خوانده می‌شود؛ این انتخاب برنامه تأییدشده را تغییر نمی‌دهد. راهنمای کاربر فقط جهت بیان و تأکید است و مجوز ساخت ادعای جدید نیست.\n');
 console.log('actionهای فعال: generate، regenerate، shorter، friendly، direct. همه از پرامپت دوم استفاده می‌کنند. ذخیره دستی، کپی، خواندن صفحات و ثبت انجام کار هیچ درخواست AI ندارند.\n');
 console.log('## ۳. تحلیل وضعیت و اصلاح روزهای آینده\n\nمنبع: apps/api/src/ai/analysis.service.ts\n\n```text\n'+analysisPrompt+'\n```\n');
 console.log('تحلیل فقط با بررسی وضعیت درخواست می‌شود. تأیید، رد و پایان کمپین درخواست AI ندارند. محتوا به شواهد واقعی و مسیر اقدام دسترسی دارد؛ توصیف یک رضایت، متن واقعی نقل‌قول نیست. صحت ادعاها نیازمند بازبینی کاربر است.\n');

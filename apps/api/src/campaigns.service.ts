@@ -5,6 +5,7 @@ import { normalizedContext } from './campaign-context';
 import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { validateStoredPlan } from './ai/planning';
 const include = {preparationTasks:{orderBy:{position:'asc' as const}},days: { include: { result:true, tasks: { where: { archived: false },orderBy:[{position:'asc' as const},{id:'asc' as const}] } }, orderBy: { dayNumber: 'asc' as const } } };
 @Injectable()
 export class CampaignsService {
@@ -48,6 +49,44 @@ export class CampaignsService {
       const {objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=p.data.fields;
       const after=await tx.campaign.create({data:{...base,ownerId:c.ownerId,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):null,creationKey:p.data.key,creationPayloadHash:hash,planningContext:JSON.parse(JSON.stringify({objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}))},include});
       await tx.campaignChange.create({data:{campaignId:after.id,source:'COPIED_SETUP',reason:'نسخه تازه برای ویرایش؛ اجرای قبلی منتقل نشده است',data:{sourceCampaignId:id}}});return after;
+    });
+  }
+  async reuse(id:string,input:unknown){
+    const parsed=z.object({name:CreateCampaignSchema.shape.name,startDate:CreateCampaignSchema.shape.startDate.unwrap(),mode:z.enum(['plan','setup']),includeLearnings:z.boolean().default(false),expectedUpdatedAt:z.string().datetime(),key:z.string().uuid()}).strict().safeParse(input);
+    if(!parsed.success)throw new BadRequestException('نام، تاریخ شروع و روش استفاده مجدد را بررسی کن.');
+    const p=parsed.data;
+    const hash=createHash('sha256').update(JSON.stringify({sourceCampaignId:id,...p,key:undefined})).digest('hex');
+    return this.db.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT id FROM "Campaign" WHERE id = ${id} FOR UPDATE`;
+      const source=await tx.campaign.findUnique({where:{id}});
+      if(!source)throw new NotFoundException('کمپین پیدا نشد.');
+      const previous=await tx.campaign.findUnique({where:{creationKey:p.key},include});
+      if(previous){if(previous.ownerId!==source.ownerId||previous.creationPayloadHash!==hash)throw new ConflictException('این درخواست قبلاً با اطلاعات دیگری ثبت شده است.');return previous;}
+      if(source.updatedAt.toISOString()!==p.expectedUpdatedAt)throw new ConflictException('کمپین اصلی تغییر کرده است؛ صفحه را تازه کن و دوباره تلاش کن.');
+      if(p.mode==='plan'){
+        if(!source.aiPlan)throw new BadRequestException('این کمپین هنوز طرح ذخیره‌شده ندارد؛ کپی اطلاعات را انتخاب کن.');
+        try{validateStoredPlan(source.aiPlan,source.duration,source.maxContentPerDay);}catch{throw new BadRequestException('طرح ذخیره‌شده برای استفاده مجدد معتبر نیست؛ از کپی اطلاعات و ساخت طرح تازه استفاده کن.');}
+      }
+      const context=(source.planningContext??{}) as Record<string,unknown>;
+      const completion=source.completion as {learnings?:string[]}|null;
+      const learnings=p.includeLearnings&&source.status==='COMPLETED'?completion?.learnings??[]:[];
+      const fields=CreateCampaignSchema.safeParse({
+        name:p.name,businessType:source.businessType,campaignType:source.campaignType,product:source.product,
+        audience:source.audience??undefined,problem:source.problem??undefined,outcome:source.outcome??undefined,
+        duration:source.duration,target:source.target??undefined,maxContentPerDay:source.maxContentPerDay,
+        offer:source.offer,salesPath:source.salesPath,startDate:p.startDate,
+        objections:context.objections,proofAssets:context.proofAssets,availableContentFormats:context.availableContentFormats,
+        conversionPath:Object.prototype.hasOwnProperty.call(context,'conversionPath')?context.conversionPath:source.salesPath,
+        previousLearnings:learnings.length?[...new Set([...(Array.isArray(context.previousLearnings)?context.previousLearnings:[]),...learnings])]:context.previousLearnings,
+      });
+      if(!fields.success)throw new BadRequestException('اطلاعات کمپین اصلی برای کپی معتبر نیست؛ اطلاعات پایه را بررسی کن.');
+      const {objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=fields.data;
+      const result=await tx.campaign.create({data:{...base,ownerId:source.ownerId,status:'DRAFT',startDate:new Date(startDate!+'T12:00:00.000Z'),creationKey:p.key,creationPayloadHash:hash,
+        planningContext:JSON.parse(JSON.stringify({objections,proofAssets,availableContentFormats,conversionPath,previousLearnings})),
+        ...(p.mode==='plan'?{aiPlan:source.aiPlan as Prisma.InputJsonValue}:{}),
+      },include});
+      await tx.campaignChange.create({data:{campaignId:result.id,source:'REUSED_CAMPAIGN',reason:p.mode==='plan'?'استفاده مجدد از اطلاعات و طرح ذخیره‌شده؛ منتظر تأیید اجرا':'استفاده مجدد از اطلاعات برای طرح تازه',data:{sourceCampaignId:id,mode:p.mode,includeLearnings:p.includeLearnings}}});
+      return result;
     });
   }
   async setup(id:string,input:unknown){

@@ -28,7 +28,7 @@ export class ContentService {
   async generate(id:string,input:unknown) {
     const parsed=ContentActionSchema.safeParse(input ?? {});
     if(!parsed.success) throw new BadRequestException('درخواست ساخت محتوا معتبر نیست.');
-    const {action}=parsed.data;
+    const {action,preferences}=parsed.data;
     const task=await this.task(id);
     if(action==='generate'&&task.content) return {id:task.id,content:task.content};
     if(['shorter','friendly','direct'].includes(action)&&!task.content) throw new BadRequestException('ابتدا محتوا را بساز یا متن خودت را ذخیره کن.');
@@ -39,6 +39,9 @@ export class ContentService {
       const context=buildPlanningInput(campaign);
       const raw=await this.provider.json(buildContentPrompt(action),{
         action,currentContent:task.content,revisionBrief:revisionBrief(action,task.content),
+        generationPreferences:{tone:preferences?.tone??'campaign',format:preferences?.format??'task',
+          effectiveFormat:preferences?.format&&preferences.format!=='task'?({text:'متن',voice:'ویس',video:'ویدیو',image:'تصویر',demo:'دمو / نمایش محصول'} as const)[preferences.format]:task.format,
+          instructions:preferences?.instructions??''},
         campaign:{businessType:campaign.businessType,campaignType:campaign.campaignType,product:campaign.product,
           audience:campaign.audience,problem:campaign.problem,outcome:campaign.outcome,offer:campaign.offer,
           salesPath:context.conversionPath,proofAssets:context.proofAssets,objections:context.objections,availableContentFormats:context.availableContentFormats,approvedPlan:campaign.aiPlan},
