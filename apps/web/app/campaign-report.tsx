@@ -1,4 +1,5 @@
 'use client';
+import DisclosureSummary from './disclosure-summary';
 import { useState } from 'react';
 import { request } from './api';
 export default function CampaignReport({id,name}:{id:string;name:string}){
@@ -18,5 +19,5 @@ export default function CampaignReport({id,name}:{id:string;name:string}){
    setTimeout(()=>URL.revokeObjectURL(url),10000);
   }catch(e){setError((e as Error).message);}finally{setBusy(false);}
  }
- return <details className="day-card"><summary>گزارش و نسخه قابل دانلود</summary><p>گزارش اکسل {name} شامل برنامه، نتایج، محتوا، آموخته‌ها و تاریخچه در برگه‌های جداگانه است. این فایل ممکن است اطلاعات خصوصی کسب‌وکارت را داشته باشد؛ با دقت نگهداری کن.</p><button className="outline" disabled={busy} onClick={()=>void download()}>{busy?'در حال آماده‌سازی اکسل…':'دانلود گزارش اکسل'}</button>{error&&<p role="alert" className="error">{error}</p>}</details>;
+ return <details className="day-card"><DisclosureSummary icon="download">گزارش و نسخه قابل دانلود</DisclosureSummary><p>گزارش اکسل {name} شامل برنامه، نتایج، محتوا، آموخته‌ها و تاریخچه در برگه‌های جداگانه است. این فایل ممکن است اطلاعات خصوصی کسب‌وکارت را داشته باشد؛ با دقت نگهداری کن.</p><button className="outline" disabled={busy} onClick={()=>void download()}>{busy?'در حال آماده‌سازی اکسل…':'دانلود گزارش اکسل'}</button>{error&&<p role="alert" className="error">{error}</p>}</details>;
 }

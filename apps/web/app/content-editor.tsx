@@ -1,9 +1,10 @@
 'use client';
+import DisclosureSummary from './disclosure-summary';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { defaultContentOptions, type ContentOptions } from './content-options';
 type ContentTask = {id:string;title:string;format?:string|null;content?:string|null;cta?:string;why?:string};
-export default function ContentEditor({task,onClose,onSaved,inline=false,settingsTarget}:{inline?:boolean;settingsTarget?:HTMLElement|null;task:ContentTask;onClose:()=>void;onSaved:(id:string,content:string)=>void}) {
+export default function ContentEditor({task,onClose,onSaved,inline=false,settingsTarget,onComplete,completing=false}:{inline?:boolean;settingsTarget?:HTMLElement|null;onComplete?:()=>void;completing?:boolean;task:ContentTask;onClose:()=>void;onSaved:(id:string,content:string)=>void}) {
   const dialog=useRef<HTMLDialogElement>(null);
   const key='campaign-content-draft-'+task.id;
   const [text,setText]=useState(task.content || '');
@@ -12,7 +13,7 @@ export default function ContentEditor({task,onClose,onSaved,inline=false,setting
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [previous,setPrevious]=useState<string|null>(null);
-  const [rewrite,setRewrite]=useState('shorter');
+  const editor=useRef<HTMLTextAreaElement>(null);
   const [options,setOptions]=useState<ContentOptions>(defaultContentOptions);
   const optionsKey='campaign-content-options-'+task.id;
   useEffect(()=>{try{const raw=localStorage.getItem(optionsKey);if(raw){const value=JSON.parse(raw);setOptions({tone:['campaign','friendly','formal','energetic'].includes(value.tone)?value.tone:'campaign',format:['task','text','voice','video','image','demo'].includes(value.format)?value.format:'task',instructions:typeof value.instructions==='string'?value.instructions.slice(0,1500):''});}}catch{}},[optionsKey]);
@@ -50,23 +51,53 @@ export default function ContentEditor({task,onClose,onSaved,inline=false,setting
     try {await navigator.clipboard.writeText(text);setNotice('متن کپی شد.');}
     catch {setError('کپی خودکار ممکن نشد؛ متن را انتخاب و کپی کن.');}
   }
-  const settings=<fieldset className="content-generation-settings" disabled={busy}><legend>تنظیمات تولید محتوا</legend><label className="field">لحن محتوا<select value={options.tone} onChange={e=>updateOptions({...options,tone:e.target.value as ContentOptions['tone']})}><option value="campaign">مطابق کمپین</option><option value="friendly">صمیمی</option><option value="formal">رسمی</option><option value="energetic">هیجانی</option></select></label><label className="field">قالب خروجی<select value={options.format} onChange={e=>updateOptions({...options,format:e.target.value as ContentOptions['format']})}><option value="task">مطابق کار{task.format?'؛ '+task.format:''}</option><option value="text">متن پست</option><option value="voice">متن ویس</option><option value="video">سناریوی ویدیو</option><option value="image">متن تصویر و کپشن</option><option value="demo">سناریوی نمایش محصول</option></select></label><details><summary>راهنمای تکمیلی (اختیاری)</summary><label className="field">چه نکته‌ای در متن پررنگ‌تر شود؟<textarea rows={3} maxLength={1500} placeholder="مثلاً روی زمان کم تمرین تأکید کن" value={options.instructions} onChange={e=>updateOptions({...options,instructions:e.target.value})}/></label></details><p className="wizard-hint">خروجی این بخش متن یا سناریو است؛ فایل تصویر، صوت یا ویدیو ساخته نمی‌شود. انتخاب قالب، برنامه تأییدشده را تغییر نمی‌دهد.</p><p className="wizard-hint">تنظیمات با دکمه ساخت یا بازنویسی اعمال می‌شوند و در همین مرورگر برای این کار حفظ می‌شوند.</p></fieldset>;
+  function edit(value:string){setText(value);try{localStorage.setItem(key,value);}catch{}}
+  function insert(before:string,after=''){
+    const node=editor.current;if(!node)return;
+    const start=node.selectionStart,end=node.selectionEnd;
+    const next=text.slice(0,start)+before+text.slice(start,end)+after+text.slice(end);
+    if(next.length>12000)return;
+    edit(next);requestAnimationFrame(()=>{node.focus();node.setSelectionRange(start+before.length,end+before.length);});
+  }
+  const settings=<fieldset className="content-generation-settings" disabled={busy}>
+    <legend>تنظیمات محتوا</legend>
+    <div className="content-choice" role="group" aria-label="لحن محتوا"><span>لحن محتوا</span><div>{([['friendly','صمیمی'],['formal','رسمی'],['energetic','هیجانی']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={options.tone===value} onClick={()=>updateOptions({...options,tone:value})}>{label}</button>)}</div></div>
+    <div className="content-choice" role="group" aria-label="نوع محتوا"><span>نوع محتوا</span><div>{([['text','متن'],['image','تصویر'],['video','ویدیو']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={options.format===value} onClick={()=>updateOptions({...options,format:value})}>{label}</button>)}</div></div>
+    <details><DisclosureSummary icon="sparkles">راهنمای تکمیلی (اختیاری)</DisclosureSummary>
+      <label className="field">لحن محتوا<select value={options.tone} onChange={e=>updateOptions({...options,tone:e.target.value as ContentOptions['tone']})}><option value="campaign">مطابق کمپین</option><option value="friendly">صمیمی</option><option value="formal">رسمی</option><option value="energetic">هیجانی</option></select></label>
+      <label className="field">قالب خروجی<select value={options.format} onChange={e=>updateOptions({...options,format:e.target.value as ContentOptions['format']})}><option value="task">مطابق کار{task.format?'؛ '+task.format:''}</option><option value="text">متن پست</option><option value="voice">متن ویس</option><option value="video">سناریوی ویدیو</option><option value="image">متن تصویر و کپشن</option><option value="demo">سناریوی نمایش محصول</option></select></label>
+      <label className="field">چه نکته‌ای در متن پررنگ‌تر شود؟<textarea rows={3} maxLength={1500} value={options.instructions} onChange={e=>updateOptions({...options,instructions:e.target.value})}/></label>
+      <p className="wizard-hint">گزینه‌های پیش‌فرض از کمپین و کار انتخاب‌شده پیروی می‌کنند.</p>
+    </details>
+    <button className="primary content-generate" aria-label={saved?'ساخت مجدد با ایده تازه':'ساخت محتوا'} disabled={busy||(saved?!text.trim():dirty)} onClick={()=>void perform(saved?'regenerate':'generate')}><span aria-hidden="true">✧</span> {saved?'تولید دوباره با هوش مصنوعی':'تولید با هوش مصنوعی'}</button>
+    <p className="wizard-hint">تولید و بازنویسی با AI هزینه دارد. خروجی، متن یا سناریو است.</p>
+  </fieldset>;
   const body=<>
-    {settingsTarget?createPortal(settings,settingsTarget):!inline?settings:null}
+    {settingsTarget?createPortal(settings,settingsTarget):settings}
     {!inline&&<button className="close" disabled={busy} aria-label="بستن و نگهداری پیش‌نویس" onClick={onClose}>×</button>}
-    <h2 id="content-title">محتوای این کار</h2><h3>{task.title}</h3><p className="wizard-hint">{task.why}</p>{task.cta&&<p>اقدام مخاطب: {task.cta}</p>}
-    <label className="field">متن قابل ویرایش<textarea autoFocus rows={12} maxLength={12000} value={text} disabled={busy} onChange={e=>{setText(e.target.value);try {localStorage.setItem(key,e.target.value);} catch {}}}/></label>
-    {dirty&&<p className="wizard-hint">با انتخاب بازنویسی یا ساخت مجدد، ابتدا ویرایش فعلی‌ات ذخیره می‌شود.</p>}
-    <p className="wizard-hint">تولید و بازنویسی با هوش مصنوعی هزینه API دارد. ذخیره دستی و کپی درخواست AI نمی‌فرستند.</p>
-    {error&&<p className="error" role="alert">{error}</p>}<p role="status">{busy?'در حال انجام؛ ممکن است دو دقیقه طول بکشد…':notice}</p>
-    <div className="editor-actions">
-      {!saved&&<button className="primary" disabled={busy||dirty} onClick={()=>void perform('generate')}>ساخت محتوا</button>}
-      {saved&&<button className="primary" disabled={busy||!text.trim()} onClick={()=>void perform('regenerate')}>ساخت مجدد با ایده تازه</button>}
-      <button className={saved?'primary':'outline'} disabled={busy||!dirty||!text.trim()} onClick={()=>void perform('save')}>ذخیره متن</button>
-      <button className="outline" disabled={!text.trim()} onClick={()=>void copy()}>کپی</button>
+    <div className="content-editor-heading"><h2 id="content-title">محتوای پیشنهادی</h2><span className="content-draft-badge">{dirty?'ویرایش ذخیره‌نشده':saved?'ذخیره‌شده':'پیش‌نویس'}</span></div>
+    <div className="content-revision-actions">{([['shorter','کوتاه‌تر'],['friendly','صمیمی‌تر'],['direct','دعوت روشن‌تر']] as const).map(([action,label])=><button className="outline" key={action} disabled={busy||!saved||!text.trim()} onClick={()=>void perform(action)}><span aria-hidden="true">↻</span> {label}</button>)}</div>
+    <div className="content-editing-surface">
+      <div className="content-format-toolbar" role="toolbar" aria-label="ابزارهای متن">
+        <button title="متن برجسته" aria-label="متن برجسته" disabled={busy} onClick={()=>insert('**','**')}><b>B</b></button>
+        <button title="متن مورب" aria-label="متن مورب" disabled={busy} onClick={()=>insert('_','_')}><i>I</i></button>
+        <button title="عنوان" aria-label="افزودن عنوان" disabled={busy} onClick={()=>insert('\n## ')}>T</button>
+        <button title="فهرست" aria-label="افزودن فهرست" disabled={busy} onClick={()=>insert('\n• ')}>☷</button>
+        <button title="پیوند" aria-label="افزودن پیوند" disabled={busy} onClick={()=>insert('[','](https://)')}>↗</button>
+        <button title="شکلک" aria-label="افزودن شکلک" disabled={busy} onClick={()=>insert('✨')}>☺</button>
+        <span>قالب‌بندی متنی</span>
+      </div>
+      <label className="field content-text-field"><span className="content-visually-hidden">متن قابل ویرایش</span><textarea ref={editor} rows={12} maxLength={12000} placeholder="محتوای پیشنهادی اینجا نمایش داده می‌شود؛ می‌توانی خودت هم بنویسی…" value={text} disabled={busy} onChange={e=>edit(e.target.value)}/></label>
+      <div className="content-editor-caption"><span>{task.title}</span><span>{text.length.toLocaleString('fa-IR')} / ۱۲٬۰۰۰</span></div>
     </div>
-    {saved&&<div className="rewrite-controls"><label className="field">نوع بازنویسی<select value={rewrite} disabled={busy} onChange={e=>setRewrite(e.target.value)}><option value="shorter">کوتاه‌تر؛ حذف اضافه‌ها</option><option value="friendly">صمیمی‌تر؛ تغییر لحن</option><option value="direct">اقدام روشن‌تر؛ دعوت مشخص</option></select></label><button className="outline" disabled={busy||!text.trim()} onClick={()=>void perform(rewrite)}>اجرای بازنویسی</button></div>}
-    {previous&&<button className="text-button" disabled={busy||dirty} onClick={()=>{setText(previous);try {localStorage.setItem(key,previous);} catch {} setPrevious(null);setNotice('متن قبلی برگشت؛ برای ثبت نهایی «ذخیره متن» را بزن.');}}>برگرداندن متن قبل از آخرین بازنویسی</button>}
+    {error&&<p className="error" role="alert">{error}</p>}<p className="content-editor-status" role="status">{busy?'در حال انجام؛ کمی صبر کن…':notice}</p>
+    <div className="editor-actions">
+      {onComplete&&<button className="primary" disabled={busy||dirty||completing||!saved} onClick={onComplete}><span aria-hidden="true">✓</span> {completing?'در حال ثبت…':'انجام دادم'}</button>}
+      <button className="outline" disabled={busy||!dirty||!text.trim()} onClick={()=>void perform('save')} aria-label="ذخیره متن"><span aria-hidden="true">✓</span> ذخیره متن</button>
+      <button className="outline" disabled={!text.trim()} onClick={()=>void copy()} aria-label="کپی"><span aria-hidden="true">▣</span> کپی متن</button>
+      {dirty&&<small>تغییراتت را ذخیره کن.</small>}
+    </div>
+    {previous&&<button className="text-button" disabled={busy||dirty} onClick={()=>{edit(previous);setPrevious(null);setNotice('متن قبلی برگشت؛ برای ثبت نهایی ذخیره متن را بزن.');}}>برگرداندن متن قبل از آخرین بازنویسی</button>}
   </>;
   return inline?<section className="inline-content-editor day-card" aria-labelledby="content-title">{body}</section>:<dialog ref={dialog} aria-labelledby="content-title" className="content-dialog" onCancel={e=>{e.preventDefault();if(!busy)onClose();}}>{body}</dialog>;
 }

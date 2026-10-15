@@ -1,4 +1,5 @@
 'use client';
+import DisclosureSummary from './disclosure-summary';
 import { useState } from 'react';
 import { ArrowLeft, BookOpen, ChevronDown, Lightbulb, Plus } from 'lucide-react';
 
@@ -51,11 +52,11 @@ export default function GettingStarted({onCreate,onCampaigns,hasCampaign}:{onCre
     <div className="guide-layout"><div><ol className="guide-steps">{steps.map((step,index)=>{
       const expanded=opened===index;
       return <li className={'guide-step'+(expanded?' is-open':'')} key={step.title}>
-        <h3><button type="button" id={'guide-step-'+index} aria-expanded={expanded} aria-controls={'guide-panel-'+index} onClick={()=>setOpened(expanded?null:index)}><span className="guide-number">{(index+1).toLocaleString('fa-IR')}</span><span className="guide-step-heading"><strong>{step.title}</strong><small>{step.subtitle}</small></span><ChevronDown size={18} className="guide-chevron"/></button></h3>
+        <h3><button type="button" id={'guide-step-'+index} aria-expanded={expanded} aria-controls={'guide-panel-'+index} onClick={()=>setOpened(expanded?null:index)}><span className="guide-number" aria-hidden="true"><BookOpen size={19}/></span><span className="guide-step-heading"><strong>{step.title}</strong><small>{step.subtitle}</small></span><ChevronDown size={18} className="guide-chevron"/></button></h3>
         <div id={'guide-panel-'+index} className="guide-panel" role="region" aria-labelledby={'guide-step-'+index} hidden={!expanded}><p>{step.body}</p><div className="guide-example"><span>برای مثال</span><p>{step.example}</p></div><p className="guide-tip"><Lightbulb size={16}/><span>{step.tip}</span></p>{index===0&&<button type="button" className="primary" onClick={onCreate}><Plus size={16}/>ساخت کمپین جدید</button>}</div>
       </li>;
     })}</ol>
-    <section className="guide-faq" aria-labelledby="guide-faq-title"><h2 id="guide-faq-title">پرسش‌های رایج</h2>{questions.map(([q,a])=><details key={q}><summary>{q}</summary><p>{a}</p></details>)}</section></div>
+    <section className="guide-faq" aria-labelledby="guide-faq-title"><h2 id="guide-faq-title">پرسش‌های رایج</h2>{questions.map(([q,a])=><details key={q}><DisclosureSummary icon="help">{q}</DisclosureSummary><p>{a}</p></details>)}</section></div>
     <aside className="guide-side"><span className="guide-side-icon"><Lightbulb size={22}/></span><h3>برای شروع لازم نیست همه‌چیز قطعی باشد</h3><p>با اطلاعاتی که داری شروع کن. جزئیات اختیاری را فقط وقتی اضافه کن که واقعی و قابل استفاده باشند.</p><div className="guide-side-note">اول طرح را بررسی کن، بعد تأیید کن و سراغ اجرا برو.</div>{hasCampaign&&<button type="button" className="outline" onClick={onCampaigns}>رفتن به کمپین‌های من<ArrowLeft size={16}/></button>}</aside></div>
   </section>;
 }

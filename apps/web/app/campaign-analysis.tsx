@@ -1,4 +1,5 @@
 'use client';
+import DisclosureSummary from './disclosure-summary';
 import { useEffect, useState } from 'react';
 import { request } from './api';
 type Task={id?:string;title:string;why?:string|null;cta?:string|null;type?:string};
@@ -24,7 +25,7 @@ export default function CampaignAnalysis({campaignId,days,hasResults,onApplied}:
  {analysis&&<><h3>{analysis.status==='APPLIED'?(noChange?'برنامه بدون تغییر ادامه دارد':'اصلاحات اعمال شده'):analysis.status==='DISMISSED'?'پیشنهاد رد شده':'پیشنهاد آماده بررسی'}</h3><p>{analysis.report.summary}</p>
  {analysis.stale&&<p role="alert">این پیشنهاد با اطلاعات قبلی ساخته شده؛ برای اعمال، دوباره بررسی کن.</p>}
  {modern&&<><h3>چه اتفاقی افتاده؟</h3><ul>{modern.facts.map((f,i)=><li key={i}>{f.text}</li>)}</ul>
- {modern.calculations.length>0&&<details><summary>محاسبه از عددهای ثبت‌شده</summary>{modern.calculations.map((c,i)=><p key={i}>{c.label}: {c.value}<br/><small>{c.basis}</small></p>)}</details>}
+ {modern.calculations.length>0&&<details><DisclosureSummary icon="chart">محاسبه از عددهای ثبت‌شده</DisclosureSummary>{modern.calculations.map((c,i)=><p key={i}>{c.label}: {c.value}<br/><small>{c.basis}</small></p>)}</details>}
  <h3>چه سیگنال‌هایی می‌بینیم؟</h3>{modern.signals.map((s,i)=><article key={i}><p>{s.text}</p><small>شواهد: {s.evidence}</small></article>)}
  <h3>برداشت احتمالی؛ نه واقعیت قطعی</h3>{modern.hypotheses.map((h,i)=><p key={i}>{h.text} · اطمینان: {({LOW:'کم',MEDIUM:'متوسط',HIGH:'زیاد'} as Record<string,string>)[h.confidence]}</p>)}
  <h3>پیشنهاد من</h3><p>{modern.recommendation.summary}</p><p>دلیل: {modern.recommendation.reason}</p>

@@ -17,7 +17,12 @@ for(const mode of ['plan','setup'])test(`reuse campaign in ${mode} mode without 
  await page.getByRole('button',{name:'استفاده مجدد از '+source.name,exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'استفاده مجدد از کمپین'});
  await expect(dialog).toBeVisible();await expect(dialog.getByRole('combobox')).toHaveValue('plan');
- await dialog.getByLabel('نام کمپین جدید').fill('اجرای دوم دوره');await dialog.getByLabel('تاریخ شروع جدید').fill('2026-11-01');
+ await dialog.getByLabel('نام کمپین جدید').fill('اجرای دوم دوره');await dialog.getByLabel('تاریخ شروع جدید').fill('۱۴۰۵/۰۸/۱۰');
+ await dialog.getByLabel('تاریخ شروع جدید').fill('۱۴۰۵/۰۷/۳۱');
+ await expect(dialog.getByRole('button',{name:'ساخت پیش‌نویس جدید',exact:true})).toBeDisabled();
+ await dialog.getByLabel('تاریخ شروع جدید').fill('۱۴۰۵/۰۸/۱۰');
+ await dialog.getByText('انتخاب از تقویم شمسی',{exact:true}).click();
+ await dialog.getByRole('button',{name:'10 آبان 1405',exact:true}).click();
  await dialog.getByRole('combobox').selectOption(mode);
  await dialog.getByRole('checkbox').check();
  await dialog.getByRole('button',{name:'ساخت پیش‌نویس جدید',exact:true}).click();
