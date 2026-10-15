@@ -1,0 +1,8 @@
+'use client';
+import { BarChart3, FileText, Info, PenLine } from 'lucide-react';
+import type { Campaign } from './campaign-types';
+const tabs=[{key:'plan',label:'برنامه',icon:FileText},{key:'today',label:'محتوا',icon:PenLine},{key:'results',label:'نتایج',icon:BarChart3},{key:'audience',label:'اطلاعات',icon:Info}];
+export default function WorkspaceHeader({campaign,view,progress,change}:{campaign:Campaign;view:string;progress:number;change:(view:string)=>void}){
+ return <><div className="workspace-heading"><div><span className={'campaign-status status-'+campaign.status}>{({ACTIVE:'در حال اجرا',DRAFT:'پیش‌نویس',COMPLETED:'پایان‌یافته',PAUSED:'متوقف'} as Record<string,string>)[campaign.status]||campaign.status}</span><h2>{campaign.name}</h2></div><div className="workspace-progress"><span>{progress.toLocaleString('fa-IR')}٪ کارها انجام شده</span><progress value={progress} max={100} aria-label="پیشرفت کمپین"/></div></div>
+ <nav className="workspace-tabs" role="tablist" aria-label="بخش‌های کمپین">{tabs.map(({key,label,icon:Icon},index)=><button type="button" role="tab" id={'workspace-tab-'+key} aria-selected={view===key} aria-controls="workspace-panel" tabIndex={view===key?0:-1} key={key} className={view===key?'active':''} onClick={()=>change(key)} onKeyDown={e=>{let next=index;if(e.key==='ArrowLeft')next=(index+1)%tabs.length;else if(e.key==='ArrowRight')next=(index+tabs.length-1)%tabs.length;else if(e.key==='Home')next=0;else if(e.key==='End')next=tabs.length-1;else return;e.preventDefault();change(tabs[next].key);document.getElementById('workspace-tab-'+tabs[next].key)?.focus();}}><Icon size={18} aria-hidden="true"/>{label}</button>)}</nav></>;
+}

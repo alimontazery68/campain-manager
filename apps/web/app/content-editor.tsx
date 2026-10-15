@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 type ContentTask = {id:string;title:string;content?:string|null;cta?:string;why?:string};
-export default function ContentEditor({task,onClose,onSaved}:{task:ContentTask;onClose:()=>void;onSaved:(id:string,content:string)=>void}) {
+export default function ContentEditor({task,onClose,onSaved,inline=false}:{inline?:boolean;task:ContentTask;onClose:()=>void;onSaved:(id:string,content:string)=>void}) {
   const dialog=useRef<HTMLDialogElement>(null);
   const key='campaign-content-draft-'+task.id;
   const [text,setText]=useState(task.content || '');
@@ -12,9 +12,9 @@ export default function ContentEditor({task,onClose,onSaved}:{task:ContentTask;o
   const [previous,setPrevious]=useState<string|null>(null);
   const [rewrite,setRewrite]=useState('shorter');
   useEffect(()=>{
-    dialog.current?.showModal();
+    if(!inline)dialog.current?.showModal();
     try {const draft=localStorage.getItem(key);if(draft!==null)setText(draft);} catch {}
-  },[key]);
+  },[key,inline]);
   const dirty=text!==(saved||'');
   async function perform(action:string) {
     if(busy)return;
@@ -44,8 +44,8 @@ export default function ContentEditor({task,onClose,onSaved}:{task:ContentTask;o
     try {await navigator.clipboard.writeText(text);setNotice('متن کپی شد.');}
     catch {setError('کپی خودکار ممکن نشد؛ متن را انتخاب و کپی کن.');}
   }
-  return <dialog ref={dialog} aria-labelledby="content-title" className="content-dialog" onCancel={e=>{e.preventDefault();if(!busy)onClose();}}>
-    <button className="close" disabled={busy} aria-label="بستن و نگهداری پیش‌نویس" onClick={onClose}>×</button>
+  const body=<>
+    {!inline&&<button className="close" disabled={busy} aria-label="بستن و نگهداری پیش‌نویس" onClick={onClose}>×</button>}
     <h2 id="content-title">محتوای این کار</h2><h3>{task.title}</h3><p className="wizard-hint">{task.why}</p>{task.cta&&<p>اقدام مخاطب: {task.cta}</p>}
     <label className="field">متن قابل ویرایش<textarea autoFocus rows={12} maxLength={12000} value={text} disabled={busy} onChange={e=>{setText(e.target.value);try {localStorage.setItem(key,e.target.value);} catch {}}}/></label>
     {dirty&&<p className="wizard-hint">با انتخاب بازنویسی یا ساخت مجدد، ابتدا ویرایش فعلی‌ات ذخیره می‌شود.</p>}
@@ -59,5 +59,6 @@ export default function ContentEditor({task,onClose,onSaved}:{task:ContentTask;o
     </div>
     {saved&&<div className="rewrite-controls"><label className="field">نوع بازنویسی<select value={rewrite} disabled={busy} onChange={e=>setRewrite(e.target.value)}><option value="shorter">کوتاه‌تر؛ حذف اضافه‌ها</option><option value="friendly">صمیمی‌تر؛ تغییر لحن</option><option value="direct">اقدام روشن‌تر؛ دعوت مشخص</option></select></label><button className="outline" disabled={busy||!text.trim()} onClick={()=>void perform(rewrite)}>اجرای بازنویسی</button></div>}
     {previous&&<button className="text-button" disabled={busy||dirty} onClick={()=>{setText(previous);try {localStorage.setItem(key,previous);} catch {} setPrevious(null);setNotice('متن قبلی برگشت؛ برای ثبت نهایی «ذخیره متن» را بزن.');}}>برگرداندن متن قبل از آخرین بازنویسی</button>}
-  </dialog>;
+  </>;
+  return inline?<section className="inline-content-editor day-card" aria-labelledby="content-title">{body}</section>:<dialog ref={dialog} aria-labelledby="content-title" className="content-dialog" onCancel={e=>{e.preventDefault();if(!busy)onClose();}}>{body}</dialog>;
 }

@@ -15,6 +15,7 @@ test('downloads a readable Excel workbook through the report UI without AI calls
   return route.fulfill({status:404,json:{message:'Unexpected request'}});
  });
  await page.goto('/');await page.locator('.campaign-card').click();
+ await page.getByRole('tab',{name:'نتایج',exact:true}).click();
  const report=page.locator('details').filter({has:page.locator('summary', {hasText:'گزارش و نسخه قابل دانلود'})});
  await report.locator('summary').click();
  const downloadPromise=page.waitForEvent('download');
