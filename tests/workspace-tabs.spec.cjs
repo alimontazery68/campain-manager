@@ -46,7 +46,7 @@ test('dashboard uses Tehran dates and opens the matching campaign/day; content, 
  await expect(page.getByRole('tab',{name:'محتوا',exact:true})).toHaveAttribute('aria-selected','true');
  await expect(page.locator('.campaign-picker select')).toHaveValue('ب');
  await expect(page.getByLabel('انتخاب روز کمپین')).toHaveValue('b2');
- await expect(page.getByLabel('متن قابل ویرایش')).toHaveValue('متن اولیه');
+ await expect(page.getByLabel('متن قابل ویرایش')).toHaveText('متن اولیه');
  await page.screenshot({path:testInfo.outputPath('content.png'),fullPage:true});
  await expect(page.getByRole('heading',{name:'آماده‌سازی کمپین',exact:true})).toHaveCount(0);
  await page.getByLabel('متن قابل ویرایش').fill('ویرایش دستی محفوظ');

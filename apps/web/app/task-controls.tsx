@@ -1,4 +1,5 @@
 'use client';
+import { ContentPreview } from './rich-content-editor';
 import DisclosureSummary from './disclosure-summary';
 import { useState } from 'react';
 import { request } from './api';
@@ -15,7 +16,7 @@ function Editor({day,task,days,preparation,changed}:{day:Day;task?:Task;days:Day
   await request(task?'campaigns/tasks/'+task.id:'campaigns/days/'+day.id+'/tasks',{method:task?'PATCH':'POST',body:JSON.stringify(task?{action,expectedUpdatedAt:task.updatedAt,reason,fields:action==='edit'?normalized:undefined,dayId:action==='move'?dest:undefined,position:action==='move'?position:undefined}:{fields:normalized,reason})});await changed();if(!task){setFields(empty);setReason('');}
  }catch(e){setError((e as Error).message);}finally{setBusy(false);}}
  const blocked=busy||!reason.trim();
- return <section className="day-card">{task?.content&&<details><DisclosureSummary icon="settings">متن محفوظ این کار</DisclosureSummary><p style={{whiteSpace:'pre-wrap'}}>{task.content}</p><button className="outline" onClick={()=>void navigator.clipboard.writeText(task.content||'')}>کپی</button></details>}
+ return <section className="day-card">{task?.content&&<details><DisclosureSummary icon="settings">متن محفوظ این کار</DisclosureSummary><ContentPreview value={task.content}/><button className="outline" onClick={()=>void navigator.clipboard.writeText(task.content||'')}>کپی</button></details>}
  <label className="field">دلیل تغییر (در سوابق ثبت می‌شود)<input value={reason} disabled={busy} onChange={e=>setReason(e.target.value)}/></label>
  {task?.locked?<><p>کار قفل است؛ AI و ویرایش دستی نمی‌توانند متن یا برنامه‌اش را تغییر دهند. ثبت انجام کار همچنان ممکن است.</p><button className="outline" disabled={blocked} onClick={()=>void action('unlock')}>بازکردن قفل</button></>:<>
  <label className="field">نوع کار<select value={fields.type} disabled={busy} onChange={e=>setFields({...fields,type:e.target.value})}>{Object.entries(types).map(([key,label])=><option value={key} key={key}>{label}</option>)}</select></label>

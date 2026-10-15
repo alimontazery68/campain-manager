@@ -1,4 +1,5 @@
 'use client';
+import RichContentEditor, { contentHtml } from './rich-content-editor';
 import DisclosureSummary from './disclosure-summary';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -13,7 +14,6 @@ export default function ContentEditor({task,onClose,onSaved,inline=false,setting
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [previous,setPrevious]=useState<string|null>(null);
-  const editor=useRef<HTMLTextAreaElement>(null);
   const [options,setOptions]=useState<ContentOptions>(defaultContentOptions);
   const optionsKey='campaign-content-options-'+task.id;
   useEffect(()=>{try{const raw=localStorage.getItem(optionsKey);if(raw){const value=JSON.parse(raw);setOptions({tone:['campaign','friendly','formal','energetic'].includes(value.tone)?value.tone:'campaign',format:['task','text','voice','video','image','demo'].includes(value.format)?value.format:'task',instructions:typeof value.instructions==='string'?value.instructions.slice(0,1500):''});}}catch{}},[optionsKey]);
@@ -48,17 +48,10 @@ export default function ContentEditor({task,onClose,onSaved,inline=false,setting
     } catch(e) {setError((e as Error).message);} finally {setBusy(false);}
   }
   async function copy() {
-    try {await navigator.clipboard.writeText(text);setNotice('متن کپی شد.');}
+    try {const html=contentHtml(text);const node=document.createElement('div');node.innerHTML=html;document.body.appendChild(node);const plain=node.innerText;node.remove();if(typeof ClipboardItem!=='undefined'&&navigator.clipboard.write){try{await navigator.clipboard.write([new ClipboardItem({'text/plain':new Blob([plain],{type:'text/plain'}),'text/html':new Blob([html],{type:'text/html'})})]);}catch{await navigator.clipboard.writeText(plain);}}else await navigator.clipboard.writeText(plain);setNotice('متن کپی شد.');}
     catch {setError('کپی خودکار ممکن نشد؛ متن را انتخاب و کپی کن.');}
   }
   function edit(value:string){setText(value);try{localStorage.setItem(key,value);}catch{}}
-  function insert(before:string,after=''){
-    const node=editor.current;if(!node)return;
-    const start=node.selectionStart,end=node.selectionEnd;
-    const next=text.slice(0,start)+before+text.slice(start,end)+after+text.slice(end);
-    if(next.length>12000)return;
-    edit(next);requestAnimationFrame(()=>{node.focus();node.setSelectionRange(start+before.length,end+before.length);});
-  }
   const settings=<fieldset className="content-generation-settings" disabled={busy}>
     <legend>تنظیمات محتوا</legend>
     <div className="content-choice" role="group" aria-label="لحن محتوا"><span>لحن محتوا</span><div>{([['friendly','صمیمی'],['formal','رسمی'],['energetic','هیجانی']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={options.tone===value} onClick={()=>updateOptions({...options,tone:value})}>{label}</button>)}</div></div>
@@ -78,16 +71,7 @@ export default function ContentEditor({task,onClose,onSaved,inline=false,setting
     <div className="content-editor-heading"><h2 id="content-title">محتوای پیشنهادی</h2><span className="content-draft-badge">{dirty?'ویرایش ذخیره‌نشده':saved?'ذخیره‌شده':'پیش‌نویس'}</span></div>
     <div className="content-revision-actions">{([['shorter','کوتاه‌تر'],['friendly','صمیمی‌تر'],['direct','دعوت روشن‌تر']] as const).map(([action,label])=><button className="outline" key={action} disabled={busy||!saved||!text.trim()} onClick={()=>void perform(action)}><span aria-hidden="true">↻</span> {label}</button>)}</div>
     <div className="content-editing-surface">
-      <div className="content-format-toolbar" role="toolbar" aria-label="ابزارهای متن">
-        <button title="متن برجسته" aria-label="متن برجسته" disabled={busy} onClick={()=>insert('**','**')}><b>B</b></button>
-        <button title="متن مورب" aria-label="متن مورب" disabled={busy} onClick={()=>insert('_','_')}><i>I</i></button>
-        <button title="عنوان" aria-label="افزودن عنوان" disabled={busy} onClick={()=>insert('\n## ')}>T</button>
-        <button title="فهرست" aria-label="افزودن فهرست" disabled={busy} onClick={()=>insert('\n• ')}>☷</button>
-        <button title="پیوند" aria-label="افزودن پیوند" disabled={busy} onClick={()=>insert('[','](https://)')}>↗</button>
-        <button title="شکلک" aria-label="افزودن شکلک" disabled={busy} onClick={()=>insert('✨')}>☺</button>
-        <span>قالب‌بندی متنی</span>
-      </div>
-      <label className="field content-text-field"><span className="content-visually-hidden">متن قابل ویرایش</span><textarea ref={editor} rows={12} maxLength={12000} placeholder="محتوای پیشنهادی اینجا نمایش داده می‌شود؛ می‌توانی خودت هم بنویسی…" value={text} disabled={busy} onChange={e=>edit(e.target.value)}/></label>
+      <RichContentEditor value={text} onChange={edit} disabled={busy}/>
       <div className="content-editor-caption"><span>{task.title}</span><span>{text.length.toLocaleString('fa-IR')} / ۱۲٬۰۰۰</span></div>
     </div>
     {error&&<p className="error" role="alert">{error}</p>}<p className="content-editor-status" role="status">{busy?'در حال انجام؛ کمی صبر کن…':notice}</p>
