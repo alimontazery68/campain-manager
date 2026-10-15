@@ -10,6 +10,7 @@ export default function ContentEditor({task,onClose,onSaved}:{task:ContentTask;o
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [previous,setPrevious]=useState<string|null>(null);
+  const [rewrite,setRewrite]=useState('shorter');
   useEffect(()=>{
     dialog.current?.showModal();
     try {const draft=localStorage.getItem(key);if(draft!==null)setText(draft);} catch {}
@@ -56,7 +57,7 @@ export default function ContentEditor({task,onClose,onSaved}:{task:ContentTask;o
       <button className={saved?'primary':'outline'} disabled={busy||!dirty||!text.trim()} onClick={()=>void perform('save')}>ذخیره متن</button>
       <button className="outline" disabled={!text.trim()} onClick={()=>void copy()}>کپی</button>
     </div>
-    {saved&&<><p className="wizard-hint">بازنویسی هدفمند: کوتاه‌تر = حذف اضافه‌ها و کاهش محسوس طول؛ صمیمی‌تر = بازنویسی لحن و جمله‌ها؛ اقدام روشن‌تر = ساختار و دعوت به اقدام مشخص‌تر.</p><div className="editor-actions">{[['shorter','کوتاه‌تر'],['friendly','صمیمی‌تر'],['direct','اقدام روشن‌تر']].map(([action,label])=><button className="outline" key={action} disabled={busy||!text.trim()} onClick={()=>void perform(action)}>{label}</button>)}</div></>}
+    {saved&&<div className="rewrite-controls"><label className="field">نوع بازنویسی<select value={rewrite} disabled={busy} onChange={e=>setRewrite(e.target.value)}><option value="shorter">کوتاه‌تر؛ حذف اضافه‌ها</option><option value="friendly">صمیمی‌تر؛ تغییر لحن</option><option value="direct">اقدام روشن‌تر؛ دعوت مشخص</option></select></label><button className="outline" disabled={busy||!text.trim()} onClick={()=>void perform(rewrite)}>اجرای بازنویسی</button></div>}
     {previous&&<button className="text-button" disabled={busy||dirty} onClick={()=>{setText(previous);try {localStorage.setItem(key,previous);} catch {} setPrevious(null);setNotice('متن قبلی برگشت؛ برای ثبت نهایی «ذخیره متن» را بزن.');}}>برگرداندن متن قبل از آخرین بازنویسی</button>}
   </dialog>;
 }
