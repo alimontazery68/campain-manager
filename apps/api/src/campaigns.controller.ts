@@ -1,3 +1,4 @@
+import { MethodsService } from './ai/methods.service';
 import { Body, Controller, Get, Headers, Param, Patch, Post, Req, Res } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { PlanningService } from './ai/planning.service';
@@ -11,7 +12,10 @@ import { LearningService } from './ai/learning.service';
 import { ContextService } from './ai/context.service';
 type JsonResponse = { json(value:unknown):unknown };
 @Controller('campaigns') export class CampaignsController {
-  constructor(private service:CampaignsService,private planning:PlanningService,private content:ContentService,private results:ResultsService,private analysis:AnalysisService,private completion:CompletionService,private preparation:PreparationService,private controls:TaskControlsService,private learning:LearningService,private context:ContextService){}
+  constructor(private methods:MethodsService,private service:CampaignsService,private planning:PlanningService,private content:ContentService,private results:ResultsService,private analysis:AnalysisService,private completion:CompletionService,private preparation:PreparationService,private controls:TaskControlsService,private learning:LearningService,private context:ContextService){}
+  @Get(':id/method') methodGet(@Param('id') id:string){return this.methods.get(id);}
+  @Post(':id/method') methodRecommend(@Param('id') id:string){return this.methods.recommend(id);}
+  @Post(':id/method/accept') methodAccept(@Param('id') id:string,@Body() body:unknown){return this.methods.accept(id,body);}
   @Post('context') suggest(@Body() body:unknown){return this.context.suggest(body);}
   @Get(':id/history') history(@Param('id') id:string){return this.controls.history(id);}
   @Post('days/:id/tasks') addTask(@Param('id') id:string,@Body() body:unknown){return this.controls.add(id,body);}

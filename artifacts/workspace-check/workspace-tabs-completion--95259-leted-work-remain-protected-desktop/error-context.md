@@ -1,0 +1,106 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - main [ref=e12]:
+    - complementary [ref=e13]:
+      - generic [ref=e14]:
+        - img [ref=e16]
+        - text: کمپین‌منیجر
+      - navigation [ref=e18]:
+        - button "داشبورد" [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+          - text: داشبورد
+          - img [ref=e25]
+        - button "کمپین‌های من" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - text: کمپین‌های من
+          - img [ref=e30]
+        - button "گزارش‌ها" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+          - text: گزارش‌ها
+          - img [ref=e35]
+        - button "راهنما" [ref=e37] [cursor=pointer]:
+          - img [ref=e38]
+          - text: راهنما
+          - img [ref=e40]
+      - button "کمپین جدید" [ref=e42] [cursor=pointer]:
+        - img [ref=e43]
+        - text: کمپین جدید
+      - generic [ref=e44]:
+        - img [ref=e45]
+        - paragraph [ref=e47]: قدم بعدی‌ات را با هم پیدا می‌کنیم.
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic [ref=e51]: ۱۴۰۵ مهر ۲۳, پنجشنبه
+          - heading "فضای کار کمپین‌های تو" [level=1] [ref=e52]
+        - button "کمپین جدید" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - text: کمپین جدید
+      - generic [ref=e55]:
+        - text: کمپین انتخاب‌شده
+        - combobox "کمپین انتخاب‌شده" [ref=e56] [cursor=pointer]:
+          - option "کمپین الف" [selected]
+          - option "کمپین ب"
+          - option "کمپین پیشنویس"
+          - option "کمپین پایان"
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - generic [ref=e59]: در حال اجرا
+          - heading "کمپین الف" [level=2] [ref=e60]
+        - generic [ref=e61]:
+          - generic [ref=e62]: ۲۰٪ کارها انجام شده
+          - progressbar "پیشرفت کمپین" [ref=e63]
+      - tablist "بخش‌های کمپین" [ref=e64]:
+        - tab "برنامه" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - text: برنامه
+        - tab "محتوا" [selected] [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - text: محتوا
+        - tab "نتایج" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - text: نتایج
+        - tab "اطلاعات" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - text: اطلاعات
+      - tabpanel "محتوا" [ref=e78]:
+        - generic [ref=e79]:
+          - generic [ref=e80]:
+            - heading "انتخاب روز و کار" [level=2] [ref=e81]
+            - generic [ref=e83]:
+              - text: انتخاب روز کمپین
+              - combobox "انتخاب روز کمپین" [ref=e84] [cursor=pointer]:
+                - option "روز ۱ · مأموریت 1"
+                - option "روز ۲ · مأموریت 2" [selected]
+                - option "روز ۳ · مأموریت 3"
+            - generic [ref=e85]:
+              - text: کار محتوایی
+              - combobox "کار محتوایی" [ref=e86] [cursor=pointer]:
+                - option "کار امروز الف" [selected]
+                - option "کار انجام شده"
+                - option "کار قفل شده"
+            - generic [ref=e87]: محتوا
+            - heading "کار امروز الف" [level=3] [ref=e88]
+            - paragraph [ref=e89]: توضیح واقعی کار
+            - paragraph [ref=e90]: متن را بررسی و خودت منتشر کن؛ سپس انجام کار را ثبت کن.
+            - button "انجام دادم" [ref=e91] [cursor=pointer]
+          - region "محتوای این کار" [ref=e93]:
+            - heading "محتوای این کار" [level=2] [ref=e94]
+            - heading "کار امروز الف" [level=3] [ref=e95]
+            - paragraph [ref=e96]: توضیح واقعی کار
+            - generic [ref=e97]:
+              - text: متن قابل ویرایش
+              - textbox "متن قابل ویرایش" [active] [ref=e98]
+            - paragraph [ref=e99]: تولید و بازنویسی با هوش مصنوعی هزینه API دارد. ذخیره دستی و کپی درخواست AI نمی‌فرستند.
+            - status
+            - generic [ref=e100]:
+              - button "ساخت محتوا" [ref=e101] [cursor=pointer]
+              - button "ذخیره متن" [disabled] [ref=e102]
+              - button "کپی" [disabled] [ref=e103]
+    - button "خروج از حساب" [ref=e104] [cursor=pointer]
+```

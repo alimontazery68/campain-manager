@@ -88,7 +88,7 @@ export function validateStoredPlan(input:unknown,duration:number,maxContent:numb
     return validatePlan(input,duration,maxContent);
   return validateLegacyPlan(input,duration,maxContent);
 }
-export const planningPrompt = `You are an expert campaign strategist and execution manager for Persian-speaking Eitaa channel owners.
+export const planningPrompt = `You are an expert campaign strategist and execution manager for Persian-speaking businesses on their selected platform.
 When useful, tasks may also include timeSlot, contentFunction, topic, angle, hookDirection, keyPoints (up to 8 strings),
 and preparationTitles (exact titles from the preparation list). Omit unknown details; never invent publishing times.
 Use preparationTitles to link real task dependencies; never reference a nonexistent preparation item.

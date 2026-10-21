@@ -10,7 +10,7 @@
     "build:api": "npm --prefix apps/api run build",
     "lint": "eslint apps/api/src apps/web/app",
     "typecheck": "node apps/web/node_modules/typescript/bin/tsc --noEmit --project apps/web/tsconfig.json && node apps/api/node_modules/typescript/bin/tsc --noEmit --project apps/api/tsconfig.json",
-    "test": "node --test scripts/planning-contract.test.cjs scripts/content-revisions.test.cjs scripts/content-preferences.test.cjs scripts/persian-date.test.cjs scripts/api-response.test.cjs scripts/optional-reports-http.test.cjs scripts/campaign-reuse.test.cjs scripts/ownership-guard.test.cjs scripts/auth-legacy-owner.test.cjs",
+    "test": "node --test scripts/campaign-methods.test.cjs scripts/planning-contract.test.cjs scripts/content-revisions.test.cjs scripts/content-preferences.test.cjs scripts/persian-date.test.cjs scripts/api-response.test.cjs scripts/optional-reports-http.test.cjs scripts/campaign-reuse.test.cjs scripts/ownership-guard.test.cjs scripts/auth-legacy-owner.test.cjs",
     "test:e2e": "playwright test",
     "test:integration": "node scripts/verify-all.cjs"
   },

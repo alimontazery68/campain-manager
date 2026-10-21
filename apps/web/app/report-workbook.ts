@@ -56,7 +56,7 @@ export async function createReportWorkbook(campaign: Data, preview: Data, histor
   const days = records(campaign.days);
   sheet('خلاصه کمپین', ['عنوان','مقدار'], [
     ['نام کمپین',campaign.name],['وضعیت',label(campaign.status)],['محصول',campaign.product],
-    ['مخاطب',campaign.audience],['هدف کمپین',campaign.campaignType],['مدت (روز)',campaign.duration],
+    ['روش پذیرفته‌شده',object(object(object(campaign.planningContext).methodState).accepted).title],['بستر اجرا',object(object(campaign.planningContext).executionProfile).platform],['مخاطب',campaign.audience],['هدف کمپین',campaign.campaignType],['مدت (روز)',campaign.duration],
     ['شروع',date(campaign.startDate)],['سقف محتوای روزانه',campaign.maxContentPerDay],
     ['زمان خروجی (تهران)',date(exportedAt.toISOString())],['روزهای دارای نتیجه',summary.reportedDays],
     ['تعداد کارها',summary.totalTasks],['کارهای انجام‌شده',summary.completedTasks],

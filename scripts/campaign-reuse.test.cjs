@@ -38,3 +38,11 @@ test('reuse rejects stale sources, invalid dates and invalid stored plans',async
  const bad=setup({aiPlan:{schemaVersion:2}});await assert.rejects(()=>bad.service.reuse('source',bad.input),/طرح ذخیره‌شده.*معتبر نیست/);
  assert.equal(ctx.copies.length,0);assert.equal(bad.copies.length,0);
 });
+
+test('reuse retains execution facts and accepted plan method; setup-only reuse requires a fresh choice',async()=>{
+ const profile={platform:'تلگرام',familiarity:'aware',privateReplies:'yes',calls:'no',onlineSession:'yes',audienceSize:0,averageViews:null};
+ const accepted={id:'webinar',components:[],title:'جلسه آنلاین',journey:'دعوت و برگزاری',reasons:['امکانات واقعی'],preparation:[],assumptions:[],limitations:[]};
+ const ctx=setup({planningContext:{methodRequired:true,executionProfile:profile,methodState:{accepted,sourceHash:'old'}}});
+ const copy=await ctx.service.reuse('source',ctx.input);assert.deepEqual(copy.planningContext.executionProfile,profile);assert.deepEqual(copy.planningContext.methodState.accepted,accepted);assert.equal(copy.planningContext.methodState.reused,true);
+ const next=await ctx.service.reuse('source',{...ctx.input,key:randomUUID(),mode:'setup'});assert.equal(next.planningContext.methodRequired,true);assert.equal(next.planningContext.methodState,undefined);assert.deepEqual(next.planningContext.executionProfile,profile);
+});

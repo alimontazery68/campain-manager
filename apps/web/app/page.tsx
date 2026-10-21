@@ -1,4 +1,5 @@
 'use client';
+import CampaignMethod from './campaign-method';
 import DisclosureSummary from './disclosure-summary';
 import { useEffect, useState } from 'react';
 import { BarChart3, CheckCircle2, ChevronLeft, FolderKanban, LayoutDashboard, Plus, BookOpen, Sparkles, CopyPlus } from 'lucide-react';
@@ -107,7 +108,7 @@ function Dashboard() {
             <CampaignManagement key={'manage:'+campaign.id+campaign.updatedAt} campaign={campaign} changed={reloadCampaign} removed={id=>{setCampaigns(cs=>cs.filter(c=>c.id!==id));setSelected('');setContentTaskId('');setView('campaigns');}}/>
             <CampaignHistory key={'history:'+campaign.id} id={campaign.id}/>
           </>:view==='plan'?<>
-            {campaign.status==='DRAFT'?<><PlanReview plan={campaign.aiPlan} status={campaign.status} duration={campaign.duration} busy={planning} action={v=>void planAction(v)}/>{campaign.aiPlan&&<PlanEditor key={campaign.id+JSON.stringify(campaign.aiPlan)} id={campaign.id} plan={campaign.aiPlan} changed={reloadCampaign}/>}<p className="wizard-hint">برنامه اجرا و کارهای امروز فقط پس از تأیید طرح نمایش داده می‌شوند.</p></>:<>
+            {campaign.status==='DRAFT'?<>{campaign.planningContext?.methodRequired&&<CampaignMethod id={campaign.id} hasPlan={!!campaign.aiPlan} changed={reloadCampaign} edit={()=>setView('audience')}/>} {(!campaign.planningContext?.methodRequired||!!campaign.planningContext?.methodState?.accepted||!!campaign.aiPlan)&&<PlanReview plan={campaign.aiPlan} status={campaign.status} duration={campaign.duration} busy={planning} action={v=>void planAction(v)}/>} {campaign.aiPlan&&<PlanEditor key={campaign.id+JSON.stringify(campaign.aiPlan)} id={campaign.id} plan={campaign.aiPlan} changed={reloadCampaign}/>}<p className="wizard-hint">برنامه اجرا و کارهای امروز فقط پس از تأیید طرح نمایش داده می‌شوند.</p></>:<>
               {(campaign.status==='ACTIVE'||campaign.status==='COMPLETED')&&<PreparationChecklist key={'preparation:'+campaign.id} id={campaign.id} status={campaign.status} days={campaign.days} planned={campaign.aiPlan?.preparation||[]} changed={reloadCampaign}/>}
               <DayPicker days={campaign.days} value={workDay?.id||''} change={setSelectedDay} cards/>
               {campaign.status==='COMPLETED'&&<h2>برنامه نهایی · فقط مشاهده</h2>}

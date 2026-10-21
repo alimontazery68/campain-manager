@@ -1,3 +1,4 @@
+import { acceptedMethod } from './campaign-methods';
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AI_PROVIDER, AiProvider } from './provider';
@@ -42,7 +43,7 @@ export class ContentService {
         generationPreferences:{tone:preferences?.tone??'campaign',format:preferences?.format??'task',
           effectiveFormat:preferences?.format&&preferences.format!=='task'?({text:'متن',voice:'ویس',video:'ویدیو',image:'تصویر',demo:'دمو / نمایش محصول'} as const)[preferences.format]:task.format,
           instructions:preferences?.instructions??''},
-        campaign:{businessType:campaign.businessType,campaignType:campaign.campaignType,product:campaign.product,
+        campaign:{selectedMethod:acceptedMethod(campaign),executionProfile:context.executionProfile,businessType:campaign.businessType,campaignType:campaign.campaignType,product:campaign.product,
           audience:campaign.audience,problem:campaign.problem,outcome:campaign.outcome,offer:campaign.offer,
           salesPath:context.conversionPath,proofAssets:context.proofAssets,objections:context.objections,availableContentFormats:context.availableContentFormats,approvedPlan:campaign.aiPlan},
         day:{dayNumber:task.day.dayNumber,phase:task.day.phase,mission:task.day.mission,objective:task.day.objective},

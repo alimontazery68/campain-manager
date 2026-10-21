@@ -1,0 +1,107 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - main [ref=e12]:
+    - complementary [ref=e13]:
+      - generic [ref=e14]:
+        - img [ref=e16]
+        - text: کمپین‌منیجر
+      - navigation [ref=e18]:
+        - button "داشبورد" [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+          - text: داشبورد
+          - img [ref=e25]
+        - button "کمپین‌های من" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - text: کمپین‌های من
+          - img [ref=e30]
+        - button "گزارش‌ها" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+          - text: گزارش‌ها
+          - img [ref=e35]
+        - button "تنظیمات" [ref=e37] [cursor=pointer]:
+          - img [ref=e38]
+          - text: تنظیمات
+          - img [ref=e41]
+      - button "کمپین جدید" [ref=e43] [cursor=pointer]:
+        - img [ref=e44]
+        - text: کمپین جدید
+      - generic [ref=e45]:
+        - img [ref=e46]
+        - paragraph [ref=e48]: قدم بعدی‌ات را با هم پیدا می‌کنیم.
+    - generic [ref=e49]:
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - generic [ref=e52]: ۱۴۰۵ مهر ۲۳, پنجشنبه
+          - heading "فضای کار کمپین‌های تو" [level=1] [ref=e53]
+        - button "کمپین جدید" [ref=e54] [cursor=pointer]:
+          - img [ref=e55]
+          - text: کمپین جدید
+      - generic [ref=e56]:
+        - img [ref=e57]
+        - heading "اولین کمپینت رو بساز" [level=2] [ref=e59]
+        - paragraph [ref=e60]: محصول و هدفت را بگو تا فضای اجرای کمپینت آماده شود.
+        - button "ساخت کمپین" [ref=e61] [cursor=pointer]
+    - button "خروج از حساب" [ref=e62] [cursor=pointer]
+    - dialog "معرفی کمپین" [ref=e64]:
+      - button "بستن" [ref=e65] [cursor=pointer]: ×
+      - generic [ref=e66]: مرحله ۱ از ۳
+      - heading "معرفی کمپین" [level=2] [ref=e69]
+      - paragraph [ref=e70]: اطلاعات تا ثبت نهایی در همین مرورگر حفظ می‌شود.
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - text: نام کمپین
+          - textbox "نام کمپین" [ref=e73]: تست اعتبارسنجی
+        - generic [ref=e74]:
+          - text: چه محصول یا خدمتی را معرفی می‌کنی؟
+          - textbox "چه محصول یا خدمتی را معرفی می‌کنی؟" [ref=e75]: محصول واقعی
+        - generic [ref=e76]:
+          - text: هدف اصلی
+          - combobox "هدف اصلی" [ref=e77] [cursor=pointer]:
+            - option "انتخاب کن"
+            - option "افزایش فروش" [selected]
+            - option "جذب مشتری جدید"
+            - option "معرفی محصول جدید"
+        - generic [ref=e78]:
+          - text: مخاطب اصلی چه کسانی هستند؟ (اختیاری)
+          - textbox "مخاطب اصلی چه کسانی هستند؟ (اختیاری)" [ref=e79]
+        - generic [ref=e80]:
+          - text: پیشنهاد ویژه (اختیاری)
+          - textbox "پیشنهاد ویژه (اختیاری)" [ref=e81]
+        - group [ref=e82]:
+          - generic "دقیق‌تر بساز (اختیاری)" [active] [ref=e83] [cursor=pointer]
+          - generic [ref=e84]:
+            - text: جزئیات برنامه
+            - combobox "جزئیات برنامه" [ref=e85] [cursor=pointer]:
+              - option "سریع بساز"
+              - option "دقیق‌تر بساز" [selected]
+          - generic [ref=e86]:
+            - heading "چند نکته برای برنامه دقیق‌تر" [level=3] [ref=e87]
+            - paragraph [ref=e88]: همه موارد اختیاری‌اند. «نمی‌دانم» با «ندارم» متفاوت است؛ چیزی را حدس نزن.
+            - heading "مشتری‌ها معمولاً قبل از خرید درباره چه چیزی تردید دارند؟" [level=4] [ref=e89]
+            - generic [ref=e90]:
+              - text: وضعیت اطلاعات
+              - combobox "وضعیت اطلاعات" [ref=e91] [cursor=pointer]:
+                - option "نمی‌دانم" [selected]
+                - option "تردید شناخته‌شده‌ای ندارم"
+                - option "مشخص است"
+            - heading "برای اعتمادسازی چه شاهد واقعی داری؟" [level=4] [ref=e92]
+            - generic [ref=e93]:
+              - text: وضعیت اطلاعات
+              - combobox "وضعیت اطلاعات" [ref=e94] [cursor=pointer]:
+                - option "نمی‌دانم" [selected]
+                - option "هیچ شاهدی ندارم"
+                - option "مشخص است"
+            - heading "چه نوع محتوایی واقعاً می‌توانی بسازی؟" [level=4] [ref=e95]
+            - generic [ref=e96]:
+              - text: وضعیت اطلاعات
+              - combobox "وضعیت اطلاعات" [ref=e97] [cursor=pointer]:
+                - option "نمی‌دانم" [selected]
+                - option "فعلاً هیچ قالبی قابل اجرا نیست"
+                - option "مشخص است"
+        - button "ادامه" [ref=e99] [cursor=pointer]
+```

@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { validateStoredPlan } from './ai/planning';
+import { methodHash } from './ai/campaign-methods';
 const include = {preparationTasks:{orderBy:{position:'asc' as const}},days: { include: { result:true, tasks: { where: { archived: false },orderBy:[{position:'asc' as const},{id:'asc' as const}] } }, orderBy: { dayNumber: 'asc' as const } } };
 @Injectable()
 export class CampaignsService {
@@ -46,8 +47,8 @@ export class CampaignsService {
       const previous=await tx.campaign.findUnique({where:{creationKey:p.data.key},include});
       if(previous){if(previous.ownerId!==c.ownerId||previous.creationPayloadHash!==hash)throw new ConflictException('نسخه تازه قبلاً با اطلاعات متفاوت ثبت شده؛ فهرست را بررسی کن.');return previous;}
       if(c.updatedAt.toISOString()!==p.data.expectedUpdatedAt)throw new ConflictException('اطلاعات کمپین تغییر کرده؛ دوباره بخوان.');
-      const {objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=p.data.fields;
-      const after=await tx.campaign.create({data:{...base,ownerId:c.ownerId,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):null,creationKey:p.data.key,creationPayloadHash:hash,planningContext:JSON.parse(JSON.stringify({objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}))},include});
+      const {executionProfile,methodRequired,objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=p.data.fields;
+      const after=await tx.campaign.create({data:{...base,ownerId:c.ownerId,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):null,creationKey:p.data.key,creationPayloadHash:hash,planningContext:JSON.parse(JSON.stringify({executionProfile,methodRequired,objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}))},include});
       await tx.campaignChange.create({data:{campaignId:after.id,source:'COPIED_SETUP',reason:'نسخه تازه برای ویرایش؛ اجرای قبلی منتقل نشده است',data:{sourceCampaignId:id}}});return after;
     });
   }
@@ -75,15 +76,15 @@ export class CampaignsService {
         audience:source.audience??undefined,problem:source.problem??undefined,outcome:source.outcome??undefined,
         duration:source.duration,target:source.target??undefined,maxContentPerDay:source.maxContentPerDay,
         offer:source.offer,salesPath:source.salesPath,startDate:p.startDate,
-        objections:context.objections,proofAssets:context.proofAssets,availableContentFormats:context.availableContentFormats,
+        executionProfile:context.executionProfile,methodRequired:context.methodRequired,objections:context.objections,proofAssets:context.proofAssets,availableContentFormats:context.availableContentFormats,
         conversionPath:Object.prototype.hasOwnProperty.call(context,'conversionPath')?context.conversionPath:source.salesPath,
         previousLearnings:learnings.length?[...new Set([...(Array.isArray(context.previousLearnings)?context.previousLearnings:[]),...learnings])]:context.previousLearnings,
       });
       if(!fields.success)throw new BadRequestException('اطلاعات کمپین اصلی برای کپی معتبر نیست؛ اطلاعات پایه را بررسی کن.');
-      const {objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=fields.data;
+      const {executionProfile,methodRequired,objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=fields.data;
       const result=await tx.campaign.create({data:{...base,ownerId:source.ownerId,status:'DRAFT',startDate:new Date(startDate!+'T12:00:00.000Z'),creationKey:p.key,creationPayloadHash:hash,
-        planningContext:JSON.parse(JSON.stringify({objections,proofAssets,availableContentFormats,conversionPath,previousLearnings})),
-        ...(p.mode==='plan'?{aiPlan:source.aiPlan as Prisma.InputJsonValue}:{}),
+        planningContext:JSON.parse(JSON.stringify({executionProfile,methodRequired,objections,proofAssets,availableContentFormats,conversionPath,previousLearnings})),
+        ...(p.mode==='plan'?{aiPlan:source.aiPlan as Prisma.InputJsonValue,planningContext:JSON.parse(JSON.stringify({...context,previousLearnings,methodState:(context.methodState as any)?.accepted?{accepted:(context.methodState as any).accepted,reused:true}:undefined}))}:{}),
       },include});
       await tx.campaignChange.create({data:{campaignId:result.id,source:'REUSED_CAMPAIGN',reason:p.mode==='plan'?'استفاده مجدد از اطلاعات و طرح ذخیره‌شده؛ منتظر تأیید اجرا':'استفاده مجدد از اطلاعات برای طرح تازه',data:{sourceCampaignId:id,mode:p.mode,includeLearnings:p.includeLearnings}}});
       return result;
@@ -95,8 +96,10 @@ export class CampaignsService {
       await tx.$queryRaw`SELECT id FROM "Campaign" WHERE id = ${id} FOR UPDATE`;
       const c=await tx.campaign.findUnique({where:{id}});if(!c)throw new NotFoundException('کمپین پیدا نشد.');
       if(c.status!=='DRAFT'||c.updatedAt.toISOString()!==p.data.expectedUpdatedAt)throw new ConflictException('اطلاعات تغییر کرده یا طرح تأیید شده است؛ دوباره بخوان.');
-      const {objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=p.data.fields;
-      const planningContext=JSON.parse(JSON.stringify({objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}));
+      const {executionProfile,methodRequired,objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=p.data.fields;
+      const planningContext=JSON.parse(JSON.stringify({executionProfile,methodRequired,objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}));
+      const previousState=(c.planningContext as any)?.methodState;
+      if(previousState)planningContext.methodState=methodHash(c)===methodHash({...c,...base,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):null,planningContext})?previousState:{sourceHash:previousState.sourceHash,report:previousState.report};
       const after=await tx.campaign.update({where:{id},data:{...base,ownerId:c.ownerId,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):null,planningContext,aiPlan:Prisma.DbNull},include});
       await tx.campaignChange.create({data:{campaignId:id,source:'MANUAL_SETUP',reason:'تغییر اطلاعات واقعی؛ طرح قبلی نیاز به ساخت مجدد دارد',data:JSON.parse(JSON.stringify({before:c,after}))}});return after;
     });
@@ -108,8 +111,8 @@ export class CampaignsService {
     const creationPayloadHash=createHash('sha256').update(JSON.stringify(parsed.data)).digest('hex');
     const existing=creationKey?await this.db.campaign.findUnique({where:{creationKey},include}):null;
     if(existing){if((userId&&existing.ownerId!==userId)||existing.creationPayloadHash!==creationPayloadHash)throw new ConflictException('این ثبت قبلاً انجام شده و اطلاعات جدید متفاوت است؛ فهرست کمپین‌ها را بررسی کن.');return existing;}
-    const {objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=parsed.data;
-    const planningContext = JSON.parse(JSON.stringify({objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}));
+    const {executionProfile,methodRequired,objections,proofAssets,availableContentFormats,conversionPath,previousLearnings,startDate,...base}=parsed.data;
+    const planningContext = JSON.parse(JSON.stringify({executionProfile,methodRequired,objections,proofAssets,availableContentFormats,conversionPath,previousLearnings}));
     try{return await this.db.campaign.create({include,data:{...base,ownerId:userId,creationKey,creationPayloadHash:creationKey?creationPayloadHash:undefined,startDate:startDate?new Date(startDate+'T12:00:00.000Z'):undefined,planningContext}});}catch(e){
       if(creationKey&&e instanceof Prisma.PrismaClientKnownRequestError&&e.code==='P2002'){const row=await this.db.campaign.findUnique({where:{creationKey},include});if(row?.creationPayloadHash===creationPayloadHash&&(!userId||row.ownerId===userId))return row;}
       throw e;

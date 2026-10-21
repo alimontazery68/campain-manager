@@ -22,3 +22,12 @@ test('different user is rejected from campaign resources', async () => {
   const guard = new CampaignOwnershipGuard(dbFor('user-1'));
   await assert.rejects(() => guard.canActivate(context({ userId: 'user-2', params: { id: 'campaign-1' }, route: { path: '/:id' }, method: 'GET' })), /به این کمپین دسترسی ندارید/);
 });
+
+test('method read, recommendation and acceptance retain campaign ownership checks', async()=>{
+ const guard=new CampaignOwnershipGuard(dbFor('user-1'));
+ for(const [path,method] of [['/:id/method','GET'],['/:id/method','POST'],['/:id/method/accept','POST']]){
+  const request={params:{id:'campaign-1'},route:{path},method};
+  assert.equal(await guard.canActivate(context({...request,userId:'user-1'})),true);
+  await assert.rejects(()=>guard.canActivate(context({...request,userId:'user-2'})),{status:403});
+ }
+});

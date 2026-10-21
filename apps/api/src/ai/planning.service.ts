@@ -1,3 +1,4 @@
+import { acceptedMethod, methodGuide, methodPlanningInstructions } from './campaign-methods';
 import { BadRequestException, ConflictException, Inject, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AI_PROVIDER, AiProvider } from './provider';
@@ -26,13 +27,14 @@ export class PlanningService {
     const campaign=await this.db.campaign.findUnique({where:{id}});
     if(!campaign) throw new BadRequestException('کمپین پیدا نشد.');
     if(campaign.aiPlan) return campaign;
+    if((campaign.planningContext as any)?.methodRequired&&!acceptedMethod(campaign))throw new ConflictException('ابتدا روش اجرا را بررسی و بپذیر.');
     if(campaign.status!=='DRAFT') throw new ConflictException('طرح جدید فقط برای پیش‌نویس ساخته می‌شود.');
     if(campaign.duration>14) throw new BadRequestException('ساخت طرح هوشمند فعلاً برای کمپین‌های حداکثر ۱۴ روزه فعال است.');
     if(this.running.has(id)) throw new ConflictException('ساخت طرح در حال انجام است؛ کمی صبر کن.');
     this.running.add(id);
     try {
       const input=buildPlanningInput(campaign);
-      const raw=await this.provider.json(planningPrompt,{...input,normalizedContext:normalizedContext(campaign)});
+      const raw=await this.provider.json(planningPrompt+'\n'+methodPlanningInstructions,{...input,selectedMethod:acceptedMethod(campaign),methodGuide,normalizedContext:normalizedContext(campaign)});
       let plan;
       try {plan=validatePlan(raw,campaign.duration,campaign.maxContentPerDay);} catch {throw new ServiceUnavailableException('طرح دریافت‌شده معتبر نبود و ذخیره نشد. اطلاعات قبلی محفوظ است؛ دوباره تلاش کن.');}
       return await this.db.$transaction(async tx=>{
