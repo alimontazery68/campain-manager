@@ -29,7 +29,7 @@ jobs:
           chmod 700 "$SSH_DIR"
           printf '%s\n' "$SSH_KEY" > "$SSH_DIR/deploy_key"
           chmod 600 "$SSH_DIR/deploy_key"
-          ssh-keyscan -T 10 -p "${SERVER_PORT:-9011}" "$SERVER_HOST" >> "$SSH_DIR/known_hosts"
+          ssh-keyscan -T 10 -t rsa,ecdsa,ed25519 -p "${SERVER_PORT:-9011}" "$SERVER_HOST" >> "$SSH_DIR/known_hosts"
 
       - name: Upload source
         env:
@@ -42,7 +42,7 @@ jobs:
             -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
           DESTINATION="${SERVER_USER:-root}@${SERVER_HOST}"
           echo "Checking SSH authentication and remote command access"
-          ssh "${SSH_OPTIONS[@]}" -p "${SERVER_PORT:-9011}" "$DESTINATION" \
+          ssh -vv "${SSH_OPTIONS[@]}" -p "${SERVER_PORT:-9011}" "$DESTINATION" \
             'test -w /tmp && printf "SSH connection OK\n"'
           tar --exclude=.git --exclude=node_modules --exclude='*/node_modules' \
               --exclude=.next --exclude='*/.next' --exclude=.env \
