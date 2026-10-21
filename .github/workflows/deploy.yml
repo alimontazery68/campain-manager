@@ -37,13 +37,25 @@ jobs:
           SERVER_USER: ${{ secrets.DEPLOY_USER }}
           SERVER_PORT: ${{ secrets.DEPLOY_PORT }}
         run: |
+          set -euo pipefail
+          SSH_OPTIONS=(-i "$HOME/.ssh/deploy_key" -o BatchMode=yes -o IdentitiesOnly=yes
+            -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
+          DESTINATION="${SERVER_USER:-root}@${SERVER_HOST}"
+          echo "Checking SSH authentication and remote command access"
+          ssh "${SSH_OPTIONS[@]}" -p "${SERVER_PORT:-9011}" "$DESTINATION" \
+            'test -w /tmp && printf "SSH connection OK\n"'
           tar --exclude=.git --exclude=node_modules --exclude='*/node_modules' \
               --exclude=.next --exclude='*/.next' --exclude=.env \
-              --exclude='*/.env' --exclude=test-results \
+              --exclude='*/.env' --exclude=test-results --exclude=artifacts \
               -czf /tmp/campain-manager.tar.gz .
-          scp -i ~/.ssh/deploy_key -P "${SERVER_PORT:-9011}" \
+          if ! scp "${SSH_OPTIONS[@]}" -P "${SERVER_PORT:-9011}" \
               /tmp/campain-manager.tar.gz \
-              "${SERVER_USER:-root}@${SERVER_HOST}:/tmp/campain-manager.tar.gz"
+              "$DESTINATION:/tmp/campain-manager.tar.gz"; then
+            echo "Default transfer failed; retrying once with legacy SCP (for servers without working SFTP)"
+            scp -O "${SSH_OPTIONS[@]}" -P "${SERVER_PORT:-9011}" \
+              /tmp/campain-manager.tar.gz \
+              "$DESTINATION:/tmp/campain-manager.tar.gz"
+          fi
 
       - name: Install and restart production services
         env:
