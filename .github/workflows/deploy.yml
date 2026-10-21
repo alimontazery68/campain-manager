@@ -82,9 +82,9 @@ jobs:
           npm config set registry https://registry.npmjs.org/
           find . -name package-lock.json -type f -exec sed -i \
             's#https://mirror-npm.runflare.com/#https://registry.npmjs.org/#g' {} +
-          npm install --no-audit --no-fund
-          npm install --prefix apps/api --no-audit --no-fund
-          npm install --prefix apps/web --no-audit --no-fund
+          npm ci --no-audit --no-fund
+          npm ci --prefix apps/api --no-audit --no-fund
+          npm ci --prefix apps/web --no-audit --no-fund
           npm --prefix apps/api run prisma:generate
           cd apps/api
           npx prisma migrate deploy
