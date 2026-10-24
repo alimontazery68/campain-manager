@@ -73,7 +73,7 @@ test('completion from another campaign is correct; drafts and completed work rem
  await page.getByRole('button',{name:'ثبت انجام کار امروز ب',exact:true}).click();
  await expect(page.getByRole('button',{name:'ثبت انجام کار امروز ب',exact:true})).not.toBeVisible();
  expect(mutations[0]).toMatchObject({path:'/api/campaigns/tasks/b-today/complete',method:'PATCH'});
- await page.locator('.campaign-card').filter({hasText:'کمپین الف'}).click();
+ await page.getByRole('button',{name:'کمپین‌های من',exact:true}).first().click();await page.locator('.campaign-card').filter({hasText:'کمپین الف'}).click();
  await page.getByText('دسترسی به بخش‌های دیگر کمپین',{exact:true}).click();
  await page.getByRole('tab',{name:'محتوا',exact:true}).click();
  await page.getByRole('combobox',{name:'کار محتوایی',exact:true}).selectOption('locked');

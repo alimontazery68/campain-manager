@@ -17,20 +17,20 @@ async function setup(page,{saved=false,fail=false}={}){
   }
   return r.fulfill({json:null});
  });
- await page.goto('/');await page.locator('.campaign-card').click();await page.getByRole('tab',{name:'محتوا',exact:true}).click();
- await page.getByText('راهنمای تکمیلی (اختیاری)',{exact:true}).click();
+ await page.goto('/');await page.getByRole('button',{name:'کمپین‌های من',exact:true}).first().click();await page.locator('.campaign-card').click();await page.getByText('دسترسی به بخش‌های دیگر کمپین',{exact:true}).click();await page.getByRole('tab',{name:'محتوا',exact:true}).click();
+ await page.getByText('تنظیمات تولید محتوا',{exact:true}).click();
  await expect(page.getByRole('combobox',{name:'لحن محتوا',exact:true})).toBeVisible();
  return {mutations,tasks};
 }
 test('content options are task-specific, persistent and included only on explicit AI requests',async({page})=>{
  const {mutations}=await setup(page);
  const tone=page.getByRole('combobox',{name:'لحن محتوا',exact:true}),format=page.getByRole('combobox',{name:'قالب خروجی',exact:true});
- await page.getByRole('button',{name:'رسمی',exact:true}).click();await page.getByRole('button',{name:'ویدیو',exact:true}).click();
+ await tone.selectOption('formal');await format.selectOption('video');
  await page.getByLabel('چه نکته‌ای در متن پررنگ‌تر شود؟').fill('زمان کم تمرین');
  expect(mutations).toEqual([]);
  const task=page.getByRole('combobox',{name:'کار محتوایی',exact:true});
- await task.selectOption('two');await page.getByText('راهنمای تکمیلی (اختیاری)',{exact:true}).click();await expect(tone).toHaveValue('campaign');await expect(format).toHaveValue('task');
- await task.selectOption('one');await page.getByText('راهنمای تکمیلی (اختیاری)',{exact:true}).click();await expect(tone).toHaveValue('formal');await expect(format).toHaveValue('video');
+ await task.selectOption('two');await page.getByText('تنظیمات تولید محتوا',{exact:true}).click();await expect(tone).toHaveValue('campaign');await expect(format).toHaveValue('task');
+ await task.selectOption('one');await page.getByText('تنظیمات تولید محتوا',{exact:true}).click();await expect(tone).toHaveValue('formal');await expect(format).toHaveValue('video');
  await page.getByRole('button',{name:'ساخت محتوا',exact:true}).click();
  await expect(page.getByLabel('متن قابل ویرایش')).toHaveText('سناریوی تولیدشده');
  expect(mutations).toEqual([{method:'POST',body:{action:'generate',preferences:{tone:'formal',format:'video',instructions:'زمان کم تمرین'}}}]);

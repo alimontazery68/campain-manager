@@ -12,9 +12,9 @@ for(const status of ['DRAFT','ACTIVE'])test(`compact setup editor saves Persian 
   if(path==='/api/campaigns/copy')return route.fulfill({json:copied});
   return route.fulfill({json:null});
  });
- await page.goto('/');await page.locator('.campaign-card').click();await page.getByRole('tab',{name:'اطلاعات',exact:true}).click();
+ await page.goto('/');await page.getByRole('button',{name:'کمپین‌های من',exact:true}).first().click();await page.locator('.campaign-card').click();await page.getByText('دسترسی به بخش‌های دیگر کمپین',{exact:true}).click();await page.getByRole('tab',{name:'اطلاعات',exact:true}).click();
  const editor=page.locator('.setup-editor');await editor.locator(':scope>summary').click();
- await expect(editor.locator('.setup-section')).toHaveCount(4);
+ await expect(editor.locator('.setup-section')).toHaveCount(5);
  const date=editor.getByLabel('تاریخ شروع (شمسی، اختیاری)',{exact:true});
  await expect(date).toHaveValue(status==='DRAFT'?'1405/08/10':'');
  await editor.getByRole('checkbox').check();

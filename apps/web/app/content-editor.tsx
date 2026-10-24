@@ -56,15 +56,11 @@ export default function ContentEditor({task,onClose,onSaved,inline=false,setting
   function edit(value:string){setText(value);try{localStorage.setItem(key,value);}catch{}}
   const settings=<><details><DisclosureSummary icon="settings">تنظیمات تولید محتوا</DisclosureSummary><fieldset className="content-generation-settings" disabled={busy}>
     <legend>تنظیمات محتوا</legend>
-    <div className="content-choice" role="group" aria-label="لحن محتوا"><span>لحن محتوا</span><div>{([['friendly','صمیمی'],['formal','رسمی'],['energetic','هیجانی']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={options.tone===value} onClick={()=>updateOptions({...options,tone:value})}>{label}</button>)}</div></div>
-    <div className="content-choice" role="group" aria-label="نوع محتوا"><span>نوع محتوا</span><div>{([['text','متن'],['image','تصویر'],['video','ویدیو']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={options.format===value} onClick={()=>updateOptions({...options,format:value})}>{label}</button>)}</div></div>
-    <details><DisclosureSummary icon="sparkles">راهنمای تکمیلی (اختیاری)</DisclosureSummary>
       <label className="field">لحن محتوا<select value={options.tone} onChange={e=>updateOptions({...options,tone:e.target.value as ContentOptions['tone']})}><option value="campaign">مطابق کمپین</option><option value="friendly">صمیمی</option><option value="formal">رسمی</option><option value="energetic">هیجانی</option></select></label>
       <label className="field">قالب خروجی<select value={options.format} onChange={e=>updateOptions({...options,format:e.target.value as ContentOptions['format']})}><option value="task">مطابق کار{task.format?'؛ '+task.format:''}</option><option value="text">متن پست</option><option value="voice">متن ویس</option><option value="video">سناریوی ویدیو</option><option value="image">متن تصویر و کپشن</option><option value="demo">سناریوی نمایش محصول</option></select></label>
       <label className="field">چه نکته‌ای در متن پررنگ‌تر شود؟<textarea rows={3} maxLength={1500} value={options.instructions} onChange={e=>updateOptions({...options,instructions:e.target.value})}/></label>
       <p className="wizard-hint">گزینه‌های پیش‌فرض از کمپین و کار انتخاب‌شده پیروی می‌کنند.</p>
-    </details>
-    </fieldset></details><button className="primary content-generate" aria-label={saved?'ساخت مجدد با ایده تازه':'ساخت محتوا'} disabled={busy||(saved?!text.trim():dirty)} onClick={()=>void perform(saved?'regenerate':'generate')}><Sparkles size={16} aria-hidden="true"/> {saved?'تولید دوباره با هوش مصنوعی':'تولید با هوش مصنوعی'}</button>
+    </fieldset></details><button className={(saved?"outline":"primary")+" content-generate"} aria-label={saved?'ساخت مجدد با ایده تازه':'ساخت محتوا'} disabled={busy||(saved?!text.trim():dirty)} onClick={()=>void perform(saved?'regenerate':'generate')}><Sparkles size={16} aria-hidden="true"/> {saved?'تولید دوباره با هوش مصنوعی':'تولید با هوش مصنوعی'}</button>
     <p className="wizard-hint">تولید و بازنویسی با AI هزینه دارد. خروجی، متن یا سناریو است.</p>
   </>;
   const body=<>

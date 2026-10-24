@@ -14,7 +14,7 @@ test('downloads a readable Excel workbook through the report UI without AI calls
   if(url.pathname==='/api/campaigns/excel-test')return route.fulfill({json:campaign});
   return route.fulfill({status:404,json:{message:'Unexpected request'}});
  });
- await page.goto('/');await page.locator('.campaign-card').click();
+ await page.goto('/');await page.getByRole('button',{name:'کمپین‌های من',exact:true}).first().click();await page.locator('.campaign-card').click();await page.getByText('دسترسی به بخش‌های دیگر کمپین',{exact:true}).click();
  await page.getByRole('tab',{name:'نتایج',exact:true}).click();
  const report=page.locator('details').filter({has:page.locator('summary', {hasText:'گزارش و نسخه قابل دانلود'})});
  await report.locator('summary').click();

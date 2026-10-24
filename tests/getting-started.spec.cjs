@@ -10,7 +10,7 @@ for(const hasCampaign of [false,true])test(`guide works with ${hasCampaign?'an e
   return route.fulfill({status:404,json:{message:'Unexpected request'}});
  });
  await page.goto('/');
- await expect(page.locator(hasCampaign?'.campaign-card':'.empty-state')).toBeVisible();
+ await expect(page.locator(hasCampaign?'.next-step-hero':'.empty-state')).toBeVisible();
  await page.getByRole('button',{name:'راهنما',exact:true}).click();
  await expect(page.getByRole('heading',{name:'راهنمای شروع کار با کمپین‌منیجر'})).toBeVisible();
  await expect(page.getByRole('button',{name:'تنظیمات',exact:true})).toHaveCount(0);

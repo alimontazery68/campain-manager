@@ -7,7 +7,7 @@ type Bundle={guideVersion:string;evidenceScope:string;guides:Guide[]};
 let cached:Promise<Bundle>|null=null;
 function load(){if(!cached)cached=request<Bundle>('guides').then(data=>{if(!data||!Array.isArray(data.guides)||!data.guides.length)throw new Error('راهنما قابل خواندن نیست؛ دوباره تلاش کن.');return data;}).catch(e=>{cached=null;throw e;});return cached;}
 const items=(values:string[])=><ul>{values.map((v,i)=><li key={i}>{v}</li>)}</ul>;
-export function GuideBrowser({ids,stageIndex}:{ids?:string[];stageIndex?:number}){
+export function GuideBrowser({ids,stageIndex,showAbout=true}:{ids?:string[];stageIndex?:number;showAbout?:boolean}){
  const [bundle,setBundle]=useState<Bundle|null>(null),[error,setError]=useState(''),[retry,setRetry]=useState(0),[selected,setSelected]=useState(''),[stages,setStages]=useState<Record<string,number>>({}),[compare,setCompare]=useState<string[]>([]);
  useEffect(()=>{let active=true;setError('');load().then(v=>{if(active)setBundle(v);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[retry]);
  if(error)return <div role="alert"><p>{error}</p><button type="button" className="outline" onClick={()=>setRetry(r=>r+1)}>خواندن دوباره راهنما</button></div>;
@@ -21,9 +21,22 @@ export function GuideBrowser({ids,stageIndex}:{ids?:string[];stageIndex?:number}
  {compare.length>0&&<section className="education-comparison" aria-label="مقایسه روش‌ها"><h3>مقایسه دو روش</h3>{compare.length===1?<p>روش دوم را از کارت‌ها انتخاب کن.</p>:<table className="compact-table"><thead><tr>{compare.map(id=><th key={id} scope="col">{bundle.guides.find(g=>g.id===id)!.title}</th>)}</tr></thead><tbody>{(['summary','requirements','durationRule'] as const).map(field=><tr key={field}>{compare.map(id=>{const g=bundle.guides.find(g=>g.id===id)!;return <td key={id}>{Array.isArray(g[field])?items(g[field] as string[]):g[field]}</td>;})}</tr>)}</tbody></table>}</section>}
  <section className="education-detail" aria-label={'راهنمای '+guide.title}><h3>{guide.title}</h3><p>{guide.summary}</p><p className="education-note">{guide.learningNote}</p><details><summary>تناسب و نیازهای اجرا</summary><h4>مناسب برای</h4>{items(guide.suitableWhen)}<h4>نامناسب برای</h4>{items(guide.notSuitableWhen)}<h4>نیازها</h4>{items(guide.requirements)}<p>{guide.durationRule}</p></details>
  <div className="education-stage"><span className="eyebrow">گام {(index+1).toLocaleString('fa-IR')} از {guide.stages.length.toLocaleString('fa-IR')}</span><h4 aria-live="polite">{stage.title}</h4><p>{stage.description}</p><div className="editor-actions"><button className="outline" type="button" disabled={index===0} onClick={()=>setStages(v=>({...v,[guide.id]:index-1}))}><ArrowRight size={15}/>گام قبل</button><button className="outline" type="button" disabled={index===guide.stages.length-1} onClick={()=>setStages(v=>({...v,[guide.id]:index+1}))}>گام بعد<ArrowLeft size={15}/></button></div></div>
- <details><summary>مثال فرضی و خطاهای رایج</summary><span className="tag purple">مثال فرضی</span><p>{guide.example.text}</p><h4>خطاهای رایج</h4>{items(guide.commonMistakes)}</details><details><summary>چک‌لیست شروع و سنجه‌ها</summary><h4>پیش از شروع</h4>{items(guide.startChecklist)}<h4>سنجه‌ها</h4>{items(guide.measurement)}</details></section><details><summary>درباره این راهنماها</summary><p>{bundle.evidenceScope}</p></details></section>;
+ <details><summary>مثال فرضی و خطاهای رایج</summary><span className="tag purple">مثال فرضی</span><p>{guide.example.text}</p><h4>خطاهای رایج</h4>{items(guide.commonMistakes)}</details><details><summary>چک‌لیست شروع و سنجه‌ها</summary><h4>پیش از شروع</h4>{items(guide.startChecklist)}<h4>سنجه‌ها</h4>{items(guide.measurement)}</details></section>{showAbout&&<details><summary>درباره این راهنماها</summary><p>{bundle.evidenceScope}</p></details>}</section>;
 }
-export default function GuideEducation({ids,stageIndex}:{ids?:string[];stageIndex?:number}){
+export default function GuideEducation({ids,stageIndex,showAbout=true}:{ids?:string[];stageIndex?:number;showAbout?:boolean}){
  const [open,setOpen]=useState(false);
- return <details className="guide-education-disclosure" onToggle={e=>setOpen(e.currentTarget.open)}><summary><BookOpen size={17}/>راهنمای آموزشی روش؛ مطالعه اختیاری</summary>{open&&<GuideBrowser ids={ids} stageIndex={stageIndex}/>}</details>;
+ return <details className="guide-education-disclosure" onToggle={e=>setOpen(e.currentTarget.open)}><summary><BookOpen size={17}/>این روش چطور اجرا می‌شود؟</summary>{open&&<GuideBrowser ids={ids} stageIndex={stageIndex} showAbout={showAbout}/>}</details>;
+}
+
+type TaskLessonProps={methodId?:string;stageIndex?:number;taskTitle:string;objective?:string|null;why?:string|null};
+function TaskLesson({methodId,stageIndex}:TaskLessonProps){
+ const [bundle,setBundle]=useState<Bundle|null>(null),[error,setError]=useState(''),[retry,setRetry]=useState(0);
+ const mapped=!!methodId&&typeof stageIndex==='number'&&Number.isInteger(stageIndex)&&stageIndex>=0;
+ useEffect(()=>{let active=true;setError('');if(mapped)load().then(data=>{if(active)setBundle(data);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[mapped,retry]);
+ const guide=bundle?.guides.find(g=>g.id===methodId),stage=guide?.stages[stageIndex??-1];
+ return <section className="education-stage task-lesson" aria-label="آموزش مرتبط با همین کار">{error?<div role="alert"><p>{error}</p><button type="button" className="outline" onClick={()=>setRetry(n=>n+1)}>خواندن دوباره راهنما</button></div>:mapped&&!bundle?<p role="status">در حال خواندن آموزش همین مرحله…</p>:stage?<><h4>{stage.title}</h4><p>{stage.description}</p><p className="education-note">{guide!.learningNote}</p></>:<p className="wizard-hint">برای این کار مرحله آموزشی مشخصی ثبت نشده است؛ هدف و راهنمای ثبت‌شده همین کار را مبنا قرار بده.</p>}</section>;
+}
+export function TaskGuideEducation(props:TaskLessonProps){
+ const [open,setOpen]=useState(false);
+ return <details className="guide-education-disclosure" onToggle={e=>setOpen(e.currentTarget.open)}><summary><BookOpen size={17}/>راهنمای همین کار</summary>{open&&<TaskLesson {...props}/>}</details>;
 }

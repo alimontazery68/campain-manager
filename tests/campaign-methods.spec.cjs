@@ -4,7 +4,8 @@ test('beginner supplies facts, explicitly requests a method and accepts it befor
  const method={id:'webinar',components:[],title:'فروش با یک جلسه آموزشی آنلاین',journey:'ثبت‌نام، دعوت، آموزش و پیگیری',reasons:['امکان جلسه آنلاین داری'],preparation:['آماده‌سازی ارائه'],assumptions:[],limitations:['نتیجه فروش تضمین نمی‌شود']};
  await page.route('**/api/**',async route=>{
   const url=new URL(route.request().url()),path=url.pathname,verb=route.request().method();let result;
-  if(path==='/api/auth/session')result={user:{id:'owner'}};
+  if(path==='/api/guides'){const source=require('../project-guides/campaign-guides.fa.json');result={guideVersion:source.guideVersion,evidenceScope:source.evidenceScope,guides:source.guides.map(({agent,...g})=>g)};}
+  else if(path==='/api/auth/session')result={user:{id:'owner'}};
   else if(path==='/api/campaigns'&&verb==='GET')result=campaign?[campaign]:[];
   else if(path==='/api/campaigns'&&verb==='POST'){
    createInput=route.request().postDataJSON();campaign={...createInput,id:'new',status:'DRAFT',updatedAt:'2026-10-21T00:00:00Z',days:[],preparationTasks:[],planningContext:{methodRequired:true,executionProfile:createInput.executionProfile}};result=campaign;
@@ -25,6 +26,7 @@ test('beginner supplies facts, explicitly requests a method and accepts it befor
  await expect(page.getByRole('heading',{name:'پیشنهاد هوشمند روش اجرا',exact:true})).toBeVisible();expect(recommendations).toBe(0);expect(plans).toBe(0);expect(createInput.methodRequired).toBe(true);expect(createInput.executionProfile.audienceSize).toBe(0);expect(createInput.offer.regularPrice).toBe('0');
  await expect(page.getByRole('button',{name:'ساخت طرح کمپین',exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'پیشنهاد روش مناسب با هوش مصنوعی',exact:true}).click();await expect(page.getByRole('heading',{name:method.title,exact:true})).toBeVisible();expect(recommendations).toBe(1);expect(plans).toBe(0);
+ await page.getByText('این روش چطور اجرا می‌شود؟',{exact:true}).click();await expect(page.locator('.education-cards article')).toHaveCount(1);await expect(page.locator('.education-detail h3')).toHaveText('کمپین وبیناری');expect(recommendations).toBe(1);expect(plans).toBe(0);await page.getByText('این روش چطور اجرا می‌شود؟',{exact:true}).click();
  await page.getByRole('button',{name:'با این روش ادامه بده',exact:true}).click();await expect(page.getByRole('heading',{name:'طرح اختصاصی کمپین',exact:true})).toBeVisible();expect(campaign.status).toBe('DRAFT');
  await page.getByRole('button',{name:'ساخت طرح کمپین',exact:true}).click();await expect(page.getByRole('button',{name:'تأیید و ساخت برنامه اجرا',exact:true})).toBeVisible();expect(plans).toBe(1);expect(recommendations).toBe(1);expect(campaign.status).toBe('DRAFT');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
