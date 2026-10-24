@@ -3,6 +3,8 @@ import type { DailyResult } from './daily-results';
 const series=[{key:'views',label:'بازدید',color:'#5655f5'},{key:'leads',label:'سرنخ',color:'#18a887'},{key:'sales',label:'فروش',color:'#c084ec'}] as const;
 export default function ResultsTrend({days}:{days:{dayNumber:number;result?:DailyResult|null}[]}){
  const ordered=[...days].sort((a,b)=>a.dayNumber-b.dayNumber);
+ const enough=series.some(s=>ordered.filter(d=>d.result?.[s.key]!=null).length>=2);
+ if(!enough)return <p className="wizard-hint">برای نمایش روند، حداقل دو روز از یک شاخص را ثبت کن؛ مقدار نامعلوم صفر نیست.</p>;
  const max=Math.max(1,...ordered.flatMap(d=>series.map(s=>d.result?.[s.key]??0)));
  const x=(i:number)=>48+(ordered.length<2?270:i*540/(ordered.length-1));
  const y=(v:number)=>192-v/max*160;

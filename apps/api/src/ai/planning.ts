@@ -120,6 +120,7 @@ B2B may need business problem/impact, solution fit, credibility, supplied cases,
 These are strategic possibilities, NOT templates. Different businesses must not receive identical plans with nouns changed.
 
 CAMPAIGN OBJECTIVE:
+Support lead generation, audience nurturing, repeat sales, upsell and loyalty as distinct goals. Nurturing and loyalty may prioritize education, service or retention rather than immediate purchase. Repeat sales needs a supplied existing relationship; upsell needs an actual supplied upgrade, never invent either.
 Direct sale moves toward purchase. Lead generation moves toward contact/lead action.
 Launch prepares demand and introduces the product before conversion.
 Reactivation uses only a supplied existing customer relationship.

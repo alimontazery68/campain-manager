@@ -43,6 +43,7 @@ test('dashboard uses Tehran dates and opens the matching campaign/day; content, 
  await today.getByLabel('نمایش کمپین').selectOption('ب');
  await expect(today.getByText('کار امروز الف',{exact:true})).toHaveCount(0);
  await today.getByRole('button',{name:'بازکردن محتوا',exact:true}).click();
+ await page.getByText('دسترسی به بخش‌های دیگر کمپین',{exact:true}).click();
  await expect(page.getByRole('tab',{name:'محتوا',exact:true})).toHaveAttribute('aria-selected','true');
  await expect(page.locator('.campaign-picker select')).toHaveValue('ب');
  await expect(page.getByLabel('انتخاب روز کمپین')).toHaveValue('b2');
@@ -54,7 +55,7 @@ test('dashboard uses Tehran dates and opens the matching campaign/day; content, 
  await expect(page.getByRole('status')).toContainText('متن ذخیره شد.');
  expect(mutations).toHaveLength(1);expect(mutations[0]).toMatchObject({method:'PATCH',path:'/api/campaigns/tasks/b-today/content',data:{expectedContent:'متن اولیه',content:'ویرایش دستی محفوظ'}});
  await page.getByRole('tab',{name:'برنامه',exact:true}).click();
- await expect(page.getByRole('heading',{name:'آماده‌سازی کمپین',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'امروز چه کار کنم؟',exact:true})).toBeVisible();
  await expect(page.getByLabel('متن قابل ویرایش')).toHaveCount(0);
  await page.getByRole('tab',{name:'نتایج',exact:true}).click();
  await expect(page.getByRole('heading',{name:'این روز کمپین چطور بود؟'})).toBeVisible();
@@ -73,12 +74,13 @@ test('completion from another campaign is correct; drafts and completed work rem
  await expect(page.getByRole('button',{name:'ثبت انجام کار امروز ب',exact:true})).not.toBeVisible();
  expect(mutations[0]).toMatchObject({path:'/api/campaigns/tasks/b-today/complete',method:'PATCH'});
  await page.locator('.campaign-card').filter({hasText:'کمپین الف'}).click();
+ await page.getByText('دسترسی به بخش‌های دیگر کمپین',{exact:true}).click();
  await page.getByRole('tab',{name:'محتوا',exact:true}).click();
  await page.getByRole('combobox',{name:'کار محتوایی',exact:true}).selectOption('locked');
  await expect(page.getByText('متن قفل شده',{exact:true})).toBeVisible();
  await expect(page.getByLabel('متن قابل ویرایش')).toHaveCount(0);
  await page.getByRole('tab',{name:'نتایج',exact:true}).click();
- await expect(page.getByRole('img',{name:/نمودار بازدید/})).toBeVisible();
+ await expect(page.getByText(/برای نمایش روند، حداقل دو روز/)).toBeVisible();
  await page.locator('.campaign-picker select').selectOption('پیشنویس');
  await page.getByRole('tab',{name:'محتوا',exact:true}).click();
  await expect(page.getByRole('heading',{name:'محتوا پس از تأیید طرح'})).toBeVisible();

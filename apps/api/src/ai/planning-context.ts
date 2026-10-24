@@ -22,6 +22,7 @@ export const PlanningContextSchema = z.object({
   executionProfile:ExecutionProfileSchema.optional(),
   methodRequired:z.boolean().optional(),
   methodState:z.unknown().optional(),
+  methodQuestionsAnswered:z.array(z.string().max(100)).max(9).optional(),
   objections:z.array(value).max(30).nullable().optional(),
   proofAssets:z.array(ProofAssetSchema).max(30).nullable().optional(),
   availableContentFormats:z.array(value).max(20).nullable().optional(),

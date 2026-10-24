@@ -65,3 +65,28 @@ test('setup round-trips new fields, preserves same-input cache, and marks effect
  const service=new CampaignsService(t.db);await service.setup('c',{expectedUpdatedAt:t.c.updatedAt.toISOString(),fields});assert.equal(acceptedMethod(t.c).id,'webinar');await t.service.recommend('c');assert.equal(t.calls(),1);
  await service.setup('c',{expectedUpdatedAt:t.c.updatedAt.toISOString(),fields:{...fields,executionProfile:{...fields.executionProfile,onlineSession:'no'}}});assert.equal(acceptedMethod(t.c),null);assert.equal((await t.service.get('c')).stale,true);assert.equal(t.c.planningContext.executionProfile.onlineSession,'no');assert.equal(t.calls(),1);
 });
+
+test('phone-only backstage is eligible, unknown is never consent, and the selected channel reaches planning',async()=>{
+ const t=setup();t.c.planningContext.executionProfile.privateReplies='no';t.c.planningContext.executionProfile.calls='yes';
+ assert.equal(methodAllowed('private',t.c),true);await t.service.accept('c',{sourceHash:methodHash(t.c),choice:'manual',method:'private'});
+ assert.equal(buildPlanningInput(t.c).executionProfile.calls,'yes');assert.equal(acceptedMethod(t.c).id,'private');
+ const unknown=setup();unknown.c.planningContext.executionProfile.privateReplies='unknown';unknown.c.planningContext.executionProfile.calls='unknown';
+ assert.equal(methodAllowed('private',unknown.c),false);await assert.rejects(()=>unknown.service.accept('c',{sourceHash:methodHash(unknown.c),choice:'manual',method:'private'}),/سازگار نیست/);
+});
+test('inline clarification saves only requested fields with version guards and without extra AI calls',async()=>{
+ const t=setup();let calls=0;t.provider.json=async(_prompt,_input,options)=>{calls++;assert.equal(options.maxOutputTokens,2400);return {primary:null,alternative:null,questions:[{field:'calls',question:'امکان تماس داری؟'},{field:'price',question:'قیمت واقعی چقدر است؟'}]};};
+ const report=await t.service.recommend('c');await t.service.recommend('c');assert.equal(calls,1);
+ await assert.rejects(()=>t.service.answers('c',{sourceHash:report.sourceHash,answers:{audience:'داده خارج از سؤال'}}),/فقط پاسخ/);
+ await t.service.answers('c',{sourceHash:report.sourceHash,answers:{calls:'yes',price:'0'}});assert.equal(calls,1);assert.equal(t.c.offer.regularPrice,'0');assert.equal(t.c.planningContext.executionProfile.calls,'yes');assert.equal((await t.service.get('c')).report,null);
+ assert.deepEqual(t.c.planningContext.methodQuestionsAnswered,['calls','price']);await assert.rejects(()=>t.service.answers('c',{sourceHash:report.sourceHash,answers:{calls:'no'}}),/تغییر کرده/);
+});
+test('prompt/guide changes invalidate the old recommendation fingerprint while active accepted plans stay usable',()=>{
+ const {methodInput,methodPrompt,METHOD_GUIDE_VERSION,METHOD_PROMPT_VERSION}=require('../apps/api/dist/src/ai/campaign-methods');
+ const t=setup();const legacyHash=require('node:crypto').createHash('sha256').update(JSON.stringify(methodInput(t.c))).digest('hex');assert.notEqual(methodHash(t.c),legacyHash);assert.ok(METHOD_GUIDE_VERSION);assert.ok(METHOD_PROMPT_VERSION);assert.match(methodPrompt,/clarifiedFields/);
+ t.c.planningContext.methodState={sourceHash:legacyHash,accepted:option('private')};assert.equal(acceptedMethod(t.c),null);t.c.status='ACTIVE';assert.equal(acceptedMethod(t.c).id,'private');
+});
+test('all new business goals round-trip through the existing goal contract without inferring methods',()=>{
+ for(const campaignType of ['لیدگیری (دریافت اطلاعات تماس)','پرورش مخاطب','فروش مجدد به مشتریان قبلی','ارتقای خرید','وفادارسازی']){
+  const c=setup().c;const fields=CreateCampaignSchema.parse({...c,campaignType,audience:'مخاطب',problem:undefined,outcome:undefined,target:undefined,startDate:undefined});assert.equal(fields.campaignType,campaignType);assert.equal(fields.methodState,undefined);
+ }
+});

@@ -16,6 +16,7 @@ type JsonResponse = { json(value:unknown):unknown };
   @Get(':id/method') methodGet(@Param('id') id:string){return this.methods.get(id);}
   @Post(':id/method') methodRecommend(@Param('id') id:string){return this.methods.recommend(id);}
   @Post(':id/method/accept') methodAccept(@Param('id') id:string,@Body() body:unknown){return this.methods.accept(id,body);}
+  @Patch(':id/method/answers') methodAnswers(@Param('id') id:string,@Body() body:unknown){return this.methods.answers(id,body);}
   @Post('context') suggest(@Body() body:unknown){return this.context.suggest(body);}
   @Get(':id/history') history(@Param('id') id:string){return this.controls.history(id);}
   @Post('days/:id/tasks') addTask(@Param('id') id:string,@Body() body:unknown){return this.controls.add(id,body);}

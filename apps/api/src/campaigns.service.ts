@@ -6,12 +6,12 @@ import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { validateStoredPlan } from './ai/planning';
-import { methodHash } from './ai/campaign-methods';
+import { acceptedMethod, methodHash } from './ai/campaign-methods';
 const include = {preparationTasks:{orderBy:{position:'asc' as const}},days: { include: { result:true, tasks: { where: { archived: false },orderBy:[{position:'asc' as const},{id:'asc' as const}] } }, orderBy: { dayNumber: 'asc' as const } } };
 @Injectable()
 export class CampaignsService {
   constructor(private db: PrismaService) {}
-  list(userId?:string) { return this.db.campaign.findMany({ where:userId?{ownerId:userId}:undefined, include, orderBy: { updatedAt: 'desc' } }); }
+  async list(userId?:string) { const rows=await this.db.campaign.findMany({ where:userId?{ownerId:userId}:undefined, include, orderBy: { updatedAt: 'desc' } });return rows.map(c=>({...c,methodReady:!(c.planningContext as any)?.methodRequired||!!acceptedMethod(c)})); }
   private async deletionSnapshot(client:any,id:string){
     const c=await client.campaign.findUnique({where:{id},include:{days:{orderBy:{id:'asc'},include:{tasks:{orderBy:{id:'asc'}},result:true}},preparationTasks:{orderBy:{id:'asc'}},changes:{orderBy:{id:'asc'}}}});
     if(!c)throw new NotFoundException('کمپین پیدا نشد.');
@@ -121,7 +121,7 @@ export class CampaignsService {
   async get(id: string,userId?:string) {
     const campaign = await this.db.campaign.findFirst({ where: { id, ...(userId?{ownerId:userId}:{}) }, include });
     if (!campaign) throw new NotFoundException('کمپین پیدا نشد');
-    return {...campaign,context:normalizedContext(campaign)};
+    return {...campaign,methodReady:!(campaign.planningContext as any)?.methodRequired||!!acceptedMethod(campaign),context:normalizedContext(campaign)};
   }
   async completeTask(id: string) {
     return this.db.$transaction(async tx => {

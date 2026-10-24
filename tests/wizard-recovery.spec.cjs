@@ -12,8 +12,11 @@ test('wizard recovers input and retries with the same creation key',async({page}
  await w.getByLabel('نام کمپین',{exact:true}).fill('کمپین بازیابی');
  await w.getByLabel('چه محصول یا خدمتی').fill('محصول واقعی');
  await w.getByLabel('هدف اصلی').selectOption('افزایش فروش');
+ await w.getByRole('button',{name:'ادامه',exact:true}).click();
  await page.reload();await page.locator('.empty-state .primary').click();w=page.locator('.simple-wizard');
+ await w.getByRole('button',{name:'بازگشت',exact:true}).click();
  await expect(w.getByLabel('نام کمپین',{exact:true})).toHaveValue('کمپین بازیابی');
+ await w.getByRole('button',{name:'ادامه',exact:true}).click();
  await w.getByRole('button',{name:'ادامه',exact:true}).click();
  await w.getByLabel('پلتفرم اصلی').selectOption('تلگرام');
  await w.getByLabel('مخاطب برای اقدام').selectOption('مراجعه به لینک خرید');
@@ -21,7 +24,9 @@ test('wizard recovers input and retries with the same creation key',async({page}
  await w.getByLabel('نشانی یا شماره').fill('https://example.com/buy');
  await w.getByLabel('روزانه چند محتوا').selectOption('3');
  await w.getByRole('button',{name:'بازگشت',exact:true}).click();
+ await w.getByRole('button',{name:'بازگشت',exact:true}).click();
  await expect(w.getByLabel('نام کمپین',{exact:true})).toHaveValue('کمپین بازیابی');
+ await w.getByRole('button',{name:'ادامه',exact:true}).click();
  await w.getByRole('button',{name:'ادامه',exact:true}).click();
  await w.getByRole('button',{name:'ادامه',exact:true}).click();
  await w.getByRole('button',{name:'ساخت کمپین',exact:true}).click();
