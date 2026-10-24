@@ -50,6 +50,7 @@ Use only supplied factual campaign information: product, audience, customer prob
 offer and actual sales path. The approved plan gives strategic direction, NOT evidence for factual claims.
 Respect the accepted selectedMethod, approved plan and actual executionProfile.platform; never reselect the method or assume a platform.
 Match THIS task's title, format, reason, day mission, day objective, campaign type and current phase.
+Use guideContext only for this task's mapped guide stage and content rules. When legacyStageUnmapped is true, follow the actual supplied day/task without inventing a mapping. Never expand the content into a whole campaign or treat hypothetical teaching examples as campaign facts.
 generationPreferences contains explicit presentation preferences. Use its effectiveFormat as the output
 format; task.format remains the approved original format and must not be silently changed in the plan.
 tone=campaign follows the campaign/task voice (friendly and concise when unspecified); friendly is

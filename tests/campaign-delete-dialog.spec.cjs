@@ -2,12 +2,14 @@ const {test,expect}=require('@playwright/test');
 
 test('campaign deletion opens an accessible confirmation dialog and preserves explicit confirmation',async({page},testInfo)=>{
  const campaign={id:'delete-test',name:'کمپین آزمایشی',status:'DRAFT',updatedAt:'2026-10-22T00:00:00Z',duration:7,product:'محصول آزمایشی',businessType:'آموزش',campaignType:'فروش',offer:{kind:'عادی',details:''},salesPath:{action:'پیام',details:''},maxContentPerDay:1,days:[],preparationTasks:[]};
+ const other={...campaign,id:'keep',name:'کمپین دیگر'};
  let deletionRequests=0,previews=0,release;
  await page.route('**/api/**',async route=>{
   const path=new URL(route.request().url()).pathname;
-  let data=path==='/api/auth/session'?{user:{id:'owner'}}:path==='/api/campaigns'?[campaign]:campaign;
-  if(path.endsWith('/deletion')){previews++;data={token:'token-'+previews,name:campaign.name,days:7,tasks:12,results:3};}
+  let data=path==='/api/auth/session'?{user:{id:'owner'}}:path==='/api/campaigns'?[other,campaign]:campaign;
+  if(path.endsWith('/deletion')){expect(path).toBe('/api/campaigns/delete-test/deletion');previews++;data={token:'token-'+previews,name:campaign.name,days:7,tasks:12,results:3};}
   if(path.endsWith('/delete')){
+   expect(path).toBe('/api/campaigns/delete-test/delete');
    deletionRequests++;
    expect(route.request().postDataJSON()).toEqual({token:'token-'+previews,name:campaign.name,confirm:true});
    if(deletionRequests===1)return route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({message:'اطلاعات تغییر کرده؛ دوباره بررسی کن.'})});
@@ -17,10 +19,8 @@ test('campaign deletion opens an accessible confirmation dialog and preserves ex
  });
  await page.goto('/');
  await page.getByRole('button',{name:'کمپین‌های من',exact:true}).first().click();
- await page.locator('.campaign-card').click();
- await page.locator('.campaign-journey').getByRole('button',{name:'اطلاعات کسب‌وکار',exact:true}).click();
- await page.getByText('حذف کمپین یا ساخت طرح از نو',{exact:true}).click();
- const trigger=page.getByRole('button',{name:'بررسی حذف کمپین',exact:true});
+ const trigger=page.getByRole('button',{name:'حذف کمپین '+campaign.name,exact:true});
+ await expect(page.locator('.campaign-list-entry')).toHaveCount(2);
  await trigger.click();
  const dialog=page.getByRole('dialog',{name:'حذف کمپین «کمپین آزمایشی»؟',exact:true});
  await expect(dialog).toBeVisible();await expect(dialog.getByRole('button',{name:'انصراف از حذف',exact:true})).toBeFocused();
@@ -40,6 +40,6 @@ test('campaign deletion opens an accessible confirmation dialog and preserves ex
  try{
   await submit.click();await expect(dialog.getByRole('button',{name:'در حال حذف…',exact:true})).toBeDisabled();
   await page.keyboard.press('Escape');await expect(dialog).toBeVisible();await expect(dialog.getByRole('button',{name:'انصراف از حذف',exact:true})).toBeDisabled();
-  expect(deletionRequests).toBe(2);release();await expect(dialog).toHaveCount(0);
+  expect(deletionRequests).toBe(2);release();await expect(dialog).toHaveCount(0);await expect(page.locator('.campaign-list-entry')).toHaveCount(1);await expect(page.locator('.campaign-card')).toContainText(other.name);
  }finally{release?.();}
 });

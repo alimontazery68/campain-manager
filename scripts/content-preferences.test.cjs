@@ -13,7 +13,7 @@ test('selected preferences reach the actual provider input alongside real campai
  const {input,prompt}=c.calls[0];assert.deepEqual(input.generationPreferences,{...preferences,effectiveFormat:'ویدیو'});
  assert.equal(input.task.format,'متن');assert.equal(input.campaign.proofAssets[0].description,'شاهد واقعی');assert.equal(input.guidance.ctaIntensity,1);
  assert.match(prompt,/Never fabricate testimonials/);assert.match(prompt,/Never claim that an audio, image or video file was created/);
- assert.deepEqual(Object.keys(c.writes[0].data),['content']);assert.equal(c.task.format,'متن');
+ assert.deepEqual(Object.keys(c.writes[0].data),['content','metadata']);assert.equal(c.writes[0].data.metadata.topic,'تمرین');assert.equal(c.writes[0].data.metadata.guideOutput.guideVersion,require('../apps/api/dist/src/campaign-guides').guideVersion);assert.equal(c.task.format,'متن');
 });
 test('legacy requests use task defaults; regeneration and revisions also receive preferences',async()=>{
  const legacy=setup();await legacy.service.generate('t',{action:'generate'});

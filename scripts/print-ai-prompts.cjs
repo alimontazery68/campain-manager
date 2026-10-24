@@ -1,11 +1,13 @@
 const {planningPrompt}=require('../apps/api/dist/src/ai/planning');
 const {methodPrompt,methodPlanningInstructions,methodGuide,METHOD_GUIDE_VERSION,METHOD_PROMPT_VERSION}=require('../apps/api/dist/src/ai/campaign-methods');
+const {guideSelectionSummaries}=require('../apps/api/dist/src/campaign-guides');
 const {contentPrompt,revisionInstructions}=require('../apps/api/dist/src/ai/content');
 const {analysisPrompt}=require('../apps/api/dist/src/ai/analysis.service');
 const {contextPrompt}=require('../apps/api/dist/src/ai/context.service');
 const {learningPrompt}=require('../apps/api/dist/src/ai/learning.service');
 console.log('# پرامپت‌های سیستمی DeepSeek\n');
-console.log('## پیشنهاد روش\n\nنسخه راهنما: '+METHOD_GUIDE_VERSION+'؛ نسخه پرامپت: '+METHOD_PROMPT_VERSION+'؛ سقف خروجی: 2400 توکن.\n\n```text\n'+methodPrompt+'\n```\n\nراهنمای ارسال‌شده همراه داده کاربر:\n\n```json\n'+JSON.stringify(methodGuide,null,2)+'\n```\n');
+console.log('## پیشنهاد روش\n\nنسخه راهنما: '+METHOD_GUIDE_VERSION+'؛ نسخه پرامپت: '+METHOD_PROMPT_VERSION+'؛ سقف خروجی: 2400 توکن.\n\n```text\n'+methodPrompt+'\n```\n\nنمونه خلاصه‌های انتخاب؛ در درخواست واقعی فقط نامزدهای مرتبط با امکانات قطعی یا نامعلوم ارسال می‌شوند:\n\n```json\n'+JSON.stringify(guideSelectionSummaries(Object.keys(methodGuide)),null,2)+'\n```\n');
+console.log('JSON در project-guides مرجع راهنماهاست. داده طرح، selectedGuides فقط برای روش پذیرفته‌شده و اجزای آن است. داده محتوا، guideContext فقط مرحله صریح کار و قواعد محتواست؛ طرح قدیمی بدون نگاشت مرحله، حدس زده نمی‌شود. نسخه و اثرانگشت در خروجی‌ها ثبت می‌شود. API عمومی راهنما، agent را برنمی‌گرداند.\n');
 console.log('این متن‌ها دقیقاً پیام system هستند. پیام user یک JSON از اطلاعات کمپین و وظیفه است؛ کلید API داخل هیچ‌کدام نیست. پرامپت‌ها در بک‌اند قرار دارند و برای تمام کاربران همان نسخه کد مشترک‌اند.\n');
 console.log('## ۱. ساخت طرح کمپین\n\nمنبع: apps/api/src/ai/planning.ts و campaign-methods.ts\n\n```text\n'+planningPrompt+'\n'+methodPlanningInstructions+'\n```\n');
 console.log('داده user: نوع کسب‌وکار، نوع کمپین، محصول، مخاطب، مشکل، نتیجه مطلوب، پیشنهاد، conversionPath، مدت، هدف عددی و سقف محتوا؛ همچنین objections، proofAssets، availableContentFormats و previousLearnings در صورت وجود. null یا حذف‌شدن فیلد یعنی نامعلوم؛ آرایه خالی یعنی صریحاً موردی ارائه نشده. این درخواست فقط با دکمه ساخت طرح فرستاده می‌شود.\n');

@@ -1,4 +1,5 @@
-import { acceptedMethod, methodGuide, methodPlanningInstructions } from './campaign-methods';
+import {planningGuides,guideVersion,guideDigest,validateGuideRefs} from '../campaign-guides';
+import { acceptedMethod, methodPlanningInstructions } from './campaign-methods';
 import { BadRequestException, ConflictException, Inject, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AI_PROVIDER, AiProvider } from './provider';
@@ -18,7 +19,7 @@ export class PlanningService {
       await tx.$queryRaw`SELECT id FROM "Campaign" WHERE id = ${id} FOR UPDATE`;
       const c=await tx.campaign.findUnique({where:{id}});if(!c||c.status!=='DRAFT')throw new ConflictException('طرح فقط پیش از تأیید قابل ویرایش است.');
       if(!isDeepStrictEqual(c.aiPlan,p.data.expectedPlan))throw new ConflictException('طرح تغییر کرده؛ دوباره بخوان.');
-      let plan;try{plan=validateStoredPlan(p.data.plan,c.duration,c.maxContentPerDay);}catch{throw new BadRequestException('تغییر طرح، روزها یا سقف محتوا معتبر نیست.');}
+      let plan;try{plan=validateStoredPlan(p.data.plan,c.duration,c.maxContentPerDay);validateGuideRefs(plan,acceptedMethod(c));}catch{throw new BadRequestException('تغییر طرح، روزها یا سقف محتوا معتبر نیست.');}
       await tx.campaignChange.create({data:{campaignId:id,source:'MANUAL_PLAN',reason:'ویرایش طرح پیش از تأیید',data:JSON.parse(JSON.stringify({before:c.aiPlan,after:plan}))}});
       return tx.campaign.update({where:{id},data:{aiPlan:plan}});
     });
@@ -34,15 +35,15 @@ export class PlanningService {
     this.running.add(id);
     try {
       const input=buildPlanningInput(campaign);
-      const raw=await this.provider.json(planningPrompt+'\n'+methodPlanningInstructions,{...input,selectedMethod:acceptedMethod(campaign),methodGuide,normalizedContext:normalizedContext(campaign)});
+      const raw=await this.provider.json(planningPrompt+'\n'+methodPlanningInstructions,{...input,selectedMethod:acceptedMethod(campaign),guideVersion,selectedGuides:planningGuides(acceptedMethod(campaign)),normalizedContext:normalizedContext(campaign)});
       let plan;
-      try {plan=validatePlan(raw,campaign.duration,campaign.maxContentPerDay);} catch {throw new ServiceUnavailableException('طرح دریافت‌شده معتبر نبود و ذخیره نشد. اطلاعات قبلی محفوظ است؛ دوباره تلاش کن.');}
+      try {plan=validatePlan(raw,campaign.duration,campaign.maxContentPerDay);validateGuideRefs(plan,acceptedMethod(campaign),true);} catch {throw new ServiceUnavailableException('طرح دریافت‌شده معتبر نبود و ذخیره نشد. اطلاعات قبلی محفوظ است؛ دوباره تلاش کن.');}
       return await this.db.$transaction(async tx=>{
         await tx.$queryRaw`SELECT id FROM "Campaign" WHERE id = ${id} FOR UPDATE`;
         const fresh=await tx.campaign.findUnique({where:{id}});
         if(!fresh||fresh.status!=='DRAFT'||fresh.updatedAt.toISOString()!==campaign.updatedAt.toISOString())throw new ConflictException('کمپین هنگام ساخت طرح تغییر کرده یا حذف شده؛ پاسخ قدیمی ذخیره نشد. دوباره بررسی کن.');
         if(fresh.aiPlan)return fresh;
-        return tx.campaign.update({where:{id},data:{aiPlan:plan}});
+        return tx.campaign.update({where:{id},data:{aiPlan:plan,planningContext:JSON.parse(JSON.stringify({...fresh.planningContext as any,guideOutput:{guideVersion,guideDigest,methodIds:planningGuides(acceptedMethod(campaign)).map(g=>g.id)}}))}});
       });
     } finally {this.running.delete(id);}
   }
@@ -61,9 +62,9 @@ export class PlanningService {
         const existing=campaign.days.find(d=>d.dayNumber===day.dayNumber);
         const {tasks,...guidance}=day;
         const data={date:new Date(start.getTime()+(day.dayNumber-1)*86400000),phase:day.phase,mission:day.mission,objective:day.objective,guidance:JSON.parse(JSON.stringify(guidance)),tasks:{create:tasks.map((t,position)=>{
-          const {timeSlot,contentFunction,topic,angle,hookDirection,keyPoints,preparationTitles,...fields}=t as any;
+          const {timeSlot,contentFunction,topic,angle,hookDirection,keyPoints,preparationTitles,guideRef,...fields}=t as any;
           const titles=preparationTitles??(fields.requiredAsset?[fields.requiredAsset]:[]);
-          return {...fields,position,preparationIds:preparation.filter(p=>titles.includes(p.title)).map(p=>p.id),metadata:JSON.parse(JSON.stringify({timeSlot,contentFunction,topic,angle,hookDirection,keyPoints}))};
+          return {...fields,position,preparationIds:preparation.filter(p=>titles.includes(p.title)).map(p=>p.id),metadata:JSON.parse(JSON.stringify({timeSlot,contentFunction,topic,angle,hookDirection,keyPoints,guideRef}))};
         })}};
         if(existing) {
           await tx.task.updateMany({where:{dayId:existing.id,archived:false},data:{archived:true}});

@@ -1,3 +1,5 @@
+import {goalMeasurement,guideVersion,guideDigest} from '../campaign-guides';
+import {acceptedMethod} from './campaign-methods';
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
@@ -12,7 +14,7 @@ export const analysisPrompt=optimizationPrompt;
 const include={changes:{where:{source:'AI_APPROVED'},orderBy:{createdAt:'asc' as const}},preparationTasks:{orderBy:{position:'asc' as const}},days:{orderBy:{dayNumber:'asc' as const},include:{result:true,tasks:{where:{archived:false},orderBy:[{position:'asc' as const},{id:'asc' as const}]}}}};
 export function analysisSnapshot(c:any,today=tehranDate(new Date())){
  const {analysis,learning,updatedAt,createdAt,...data}=c;
- return {hash:createHash('sha256').update(JSON.stringify({today,data})).digest('hex'),input:optimizationInput(c,today)};
+ return {hash:createHash('sha256').update(JSON.stringify({today,data,guideDigest})).digest('hex'),input:{...optimizationInput(c,today),measurementContext:goalMeasurement(c.campaignType,acceptedMethod(c)),guideVersion}};
 }
 export function validateAnalysis(raw:unknown,c:any){
  const report=AnalysisSchema.parse(raw),eligible=eligibleDays(c).filter((d:any)=>d.tasks.every(eligibleTask)),seen=new Set<string>();
@@ -52,7 +54,7 @@ export class AnalysisService{
     if(latest?.id!==requestId)throw new ConflictException('درخواست جدیدتری ثبت شده است؛ این پاسخ اعمال نمی‌شود.');
     if(fresh.status!=='ACTIVE'||analysisSnapshot(fresh).hash!==snapshot.hash)throw new ConflictException('اطلاعات تغییر کرده؛ دوباره بررسی وضعیت را بزن.');
     const beforeDays=c.days.filter(d=>report.recommendation.proposedChanges.some(ch=>ch.targetDayNumber===d.dayNumber||d.tasks.some(t=>t.id===ch.targetTaskId))).map(d=>({id:d.id,dayNumber:d.dayNumber,mission:d.mission,tasks:d.tasks}));
-    const result={sourceHash:snapshot.hash,status:'PENDING',createdAt:new Date().toISOString(),report,beforeDays:JSON.parse(JSON.stringify(beforeDays))};
+    const result={guideVersion,guideDigest,sourceHash:snapshot.hash,status:'PENDING',createdAt:new Date().toISOString(),report,beforeDays:JSON.parse(JSON.stringify(beforeDays))};
     await tx.campaign.update({where:{id},data:{analysis:result}});
     await tx.campaignChange.update({where:{id:requestId!},data:{data:{sourceHash:snapshot.hash,status:'DONE'}}});
     await tx.campaignChange.create({data:{campaignId:id,source:'AI_PROPOSED',reason:report.summary,data:JSON.parse(JSON.stringify({sourceHash:snapshot.hash,report,beforeDays}))}});return result;

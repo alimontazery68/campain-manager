@@ -1,3 +1,4 @@
+import {GuideRefSchema} from '../campaign-guides';
 import { z } from 'zod';
 const text = z.string().trim().min(1).max(3000);
 export const LegacyPlanSchema = z.object({
@@ -50,7 +51,7 @@ export const PlanSchema = z.object({
     decisionPoint:z.boolean(),
     decisionCriteria:z.object({whatToCheck:signals,possibleSignals:signals,possibleResponses:signals}).strict().nullable(),
     tasks:z.array(z.object({
-      title:text,type:z.enum(['CONTENT','PREPARATION','OPERATIONAL','SALES','SUPPORT','FOLLOW_UP','MEASUREMENT']),
+      guideRef:GuideRefSchema.optional(),title:text,type:z.enum(['CONTENT','PREPARATION','OPERATIONAL','SALES','SUPPORT','FOLLOW_UP','MEASUREMENT']),
       format:z.string().trim().min(1).max(200).nullable(),
       objective:text,why:text,cta:z.string().max(1000),requiredAsset:text.nullable()
       ,timeSlot:text.nullable().optional(),contentFunction:text.nullable().optional(),topic:text.nullable().optional(),angle:text.nullable().optional(),hookDirection:text.nullable().optional(),keyPoints:z.array(text).max(8).optional(),preparationTitles:z.array(text).max(20).optional()

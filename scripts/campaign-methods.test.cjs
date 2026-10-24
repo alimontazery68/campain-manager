@@ -15,7 +15,7 @@ function setup(overrides={}){
  return {c,db,provider,service:new MethodsService(db,provider),changes,calls:()=>calls};
 }
 test('beginner gets understandable primary/alternative once; acceptance persists without activation and reaches planning input',async()=>{
- const t=setup();const a=await t.service.recommend('c');assert.match(a.report.primary.title,/جلسه آموزشی/);assert.equal(a.report.alternative.id,'private');
+ const t=setup();const a=await t.service.recommend('c');assert.equal(a.report.primary.title,methodGuide.webinar.title);assert.equal(a.report.alternative.id,'private');
  await t.service.recommend('c');assert.equal(t.calls(),1);
  await t.service.accept('c',{sourceHash:a.sourceHash,choice:'primary'});assert.equal(t.c.status,'DRAFT');assert.equal(acceptedMethod(t.c).id,'webinar');assert.equal(t.changes.length,1);
  assert.equal(buildPlanningInput(t.c).selectedMethod.id,'webinar');assert.equal(buildPlanningInput(t.c).executionProfile.platform,'تلگرام');
@@ -46,7 +46,7 @@ test('manual choice uses same capability guards, makes no AI call, and legacy me
 });
 test('webinar and private methods send distinct executable lifecycle guidance to planning, never reselect',async()=>{
  const inputs=[];
- for(const id of ['webinar','private']){const t=setup();await t.service.accept('c',{sourceHash:methodHash(t.c),choice:'manual',method:id});t.provider.json=async(prompt,input)=>{inputs.push({prompt,input});const plan=fixture();plan.strategy=input.selectedMethod.journey;plan.preparation=[{title:methodGuide[id].stages[0],why:'پیش‌نیاز روش',requiredBeforeDay:1}];plan.days[0].mission=methodGuide[id].stages[1];plan.days[1].tasks[0].title=methodGuide[id].stages.at(-1);return plan;};await new PlanningService(t.db,t.provider).generate('c');assert.equal(t.c.aiPlan.strategy,acceptedMethod(t.c).journey);}
+ for(const id of ['webinar','private']){const t=setup();await t.service.accept('c',{sourceHash:methodHash(t.c),choice:'manual',method:id});t.provider.json=async(prompt,input)=>{inputs.push({prompt,input});const plan=fixture();for(const day of plan.days)for(const task of day.tasks)if(task.type==='CONTENT')task.guideRef={methodId:id,stageIndex:day.dayNumber-1};plan.strategy=input.selectedMethod.journey;plan.preparation=[{title:methodGuide[id].stages[0],why:'پیش‌نیاز روش',requiredBeforeDay:1}];plan.days[0].mission=methodGuide[id].stages[1];plan.days[1].tasks[0].title=methodGuide[id].stages.at(-1);return plan;};await new PlanningService(t.db,t.provider).generate('c');assert.equal(t.c.aiPlan.strategy,acceptedMethod(t.c).journey);}
  assert.notEqual(inputs[0].input.selectedMethod.journey,inputs[1].input.selectedMethod.journey);assert.match(inputs[0].prompt,/registration, invitations, reminders/);assert.match(inputs[1].prompt,/private conversations and sales follow-up/);assert.match(inputs[0].prompt,/never reselect/);
 });
 test('new drafts require accepted method while old drafts remain plannable',async()=>{
@@ -89,4 +89,33 @@ test('all new business goals round-trip through the existing goal contract witho
  for(const campaignType of ['لیدگیری (دریافت اطلاعات تماس)','پرورش مخاطب','فروش مجدد به مشتریان قبلی','ارتقای خرید','وفادارسازی']){
   const c=setup().c;const fields=CreateCampaignSchema.parse({...c,campaignType,audience:'مخاطب',problem:undefined,outcome:undefined,target:undefined,startDate:undefined});assert.equal(fields.campaignType,campaignType);assert.equal(fields.methodState,undefined);
  }
+});
+
+test('guide JSON is authoritative, exact and public projection never exposes agent rules',()=>{
+ const g=require('../apps/api/dist/src/campaign-guides');const source=require('../project-guides/campaign-guides.fa.json');
+ assert.deepEqual(g.guideBundle,source);assert.deepEqual(g.publicGuides().guides.map(x=>x.id),source.guides.map(x=>x.id));
+ assert.equal(JSON.stringify(g.publicGuides()).includes('selectionSummary'),false);assert.equal(JSON.stringify(g.publicGuides()).includes('"agent"'),false);
+ for(const sourceGuide of source.guides){const publicGuide=g.publicGuides().guides.find(x=>x.id===sourceGuide.id);assert.equal(publicGuide.learningNote,sourceGuide.learningNote);assert.deepEqual(publicGuide.example,sourceGuide.example);assert.equal(methodGuide[sourceGuide.id].title,sourceGuide.title);}
+ assert.throws(()=>g.GuideBundleSchema.parse({...source,guides:source.guides.map(()=>source.guides[0])}));assert.throws(()=>g.GuideBundleSchema.parse({...source,privateSource:'never allowed'}));
+});
+test('method selection sends summaries only, asks about unknown capabilities and versions its cache',async()=>{
+ const {guideVersion,guideDigest}=require('../apps/api/dist/src/campaign-guides');const t=setup();t.c.planningContext.executionProfile.calls='unknown';t.c.planningContext.executionProfile.privateReplies='unknown';
+ t.provider.json=async(_prompt,input)=>{assert.equal(input.guideVersion,guideVersion);assert.ok(input.methodGuide.some(g=>g.id==='private'));assert.equal(input.eligibleMethods.includes('private'),false);for(const g of input.methodGuide){assert.equal(g.stages,undefined);assert.equal(g.planningRequirements,undefined);assert.equal(g.agent,undefined);}return {primary:null,alternative:null,questions:[{field:'calls',question:'امکان تماس داری؟'}]};};
+ await t.service.recommend('c');assert.equal(t.c.planningContext.methodState.guideVersion,guideVersion);assert.equal(t.c.planningContext.methodState.guideDigest,guideDigest);
+ assert.equal((await t.service.get('c')).guideVersion,guideVersion);
+ t.c.duration=1;t.c.planningContext.executionProfile.calls='yes';assert.equal(methodAllowed('challenge',t.c),true);assert.equal(methodAllowed('private',t.c),true);
+});
+test('only accepted guide reaches planning; exact mapped stage reaches content and output metadata',async()=>{
+ const guides=require('../apps/api/dist/src/campaign-guides'),t=setup();await t.service.accept('c',{sourceHash:methodHash(t.c),choice:'manual',method:'private'});
+ t.provider.json=async(_prompt,input)=>{assert.deepEqual(input.selectedGuides.map(g=>g.id),['private']);assert.equal(input.methodGuide,undefined);const p=fixture();for(const d of p.days)for(const task of d.tasks)if(task.type==='CONTENT')task.guideRef={methodId:'private',stageIndex:1};return p;};
+ await new PlanningService(t.db,t.provider).generate('c');assert.equal(t.c.planningContext.guideOutput.guideVersion,guides.guideVersion);
+ assert.throws(()=>guides.validateGuideRefs(fixture(),acceptedMethod(t.c),true));
+ const bad=fixture();bad.days[0].tasks[0].guideRef={methodId:'webinar',stageIndex:0};assert.throws(()=>guides.validateGuideRefs(bad,acceptedMethod(t.c)));
+ const task={id:'t',type:'CONTENT',archived:false,locked:false,status:'PENDING',content:null,updatedAt:new Date(),title:'گفت‌وگو',format:'متن',metadata:{guideRef:{methodId:'private',stageIndex:1}},day:{campaignId:'c',dayNumber:1,mission:'شناخت نیاز',objective:'گفت‌وگو',campaign:t.c}};t.c.status='ACTIVE';let persisted;
+ t.db.task={findUnique:async()=>task,updateMany:async args=>{persisted=args.data;return {count:1};}};
+ t.provider.json=async(_prompt,input)=>{assert.deepEqual(input.guideContext.stage,guides.guideById.private.stages[1]);assert.equal(input.guideContext.stages,undefined);assert.equal(input.campaign.approvedPlan.days,undefined);assert.equal(input.campaign.selectedMethod.journey,undefined);assert.equal(JSON.stringify(input.guideContext).includes('جلسه'),false);return {content:'متن متناسب با شناخت نیاز واقعی'};};
+ await new ContentService(t.db,t.provider).generate('t',{});assert.equal(persisted.metadata.guideOutput.guideVersion,guides.guideVersion);assert.deepEqual(persisted.metadata.guideRef,task.metadata.guideRef);
+ const legacy=guides.contentGuide(acceptedMethod(t.c),null);assert.equal(legacy.stage,null);assert.equal(legacy.legacyStageUnmapped,true);
+ const stale=guides.contentGuide(acceptedMethod(t.c),task.metadata.guideRef,{guideVersion:'old-version'});assert.equal(stale.stage,null);assert.equal(stale.legacyStageUnmapped,true);
+ assert.deepEqual(guides.goalMeasurement('لیدگیری (دریافت اطلاعات تماس)',acceptedMethod(t.c)).fields,['leads']);assert.deepEqual(guides.goalMeasurement('وفادارسازی',acceptedMethod(t.c)).fields,['feedback']);
 });
